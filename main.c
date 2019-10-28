@@ -248,7 +248,6 @@ int main(void)
     }
 
     /// Calculate the metrics
-    int cidade;
 
     /// Max and Min
     int *maior_cidades = (int *) malloc(R*C*sizeof(int));
@@ -292,13 +291,34 @@ int main(void)
     /// Deviation
 
 
+    /// Best city and region
+    float maior = -1;
+    int cidade, regiao_cidade, regiao;
+    for(i = 0; i < R; i++){
+        if(media_regiao[i] > maior){
+            maior = media_regiao[i];
+            regiao = i;
+        }
+    }
+    maior = -1;
+    for(i = 0; i < R*C; i++){
+        if(media_cidades[i] > maior){
+            maior = media_cidades[i];
+            cidade = i;
+        }
+    }
+    regiao_cidade = cidade/4;
+    cidade = cidade%C;
+
+
     // Metrics for cities
+    int k;
     for (i = 0; i < R; i++)
     {
         for(j = 0; j < C; j++)
         {
-            cidade = i*C+j;
-            printf("Reg %d - Cid %d: menor: %d, maior: %d, mediana: %.2f, media: %.2f\n", i, j, menor_cidades[cidade], maior_cidades[cidade], mediana_cidades[cidade], media_cidades[cidade]);
+            k = i*C+j;
+            printf("Reg %d - Cid %d: menor: %d, maior: %d, mediana: %.2f, media: %.2f\n", i, j, menor_cidades[k], maior_cidades[k], mediana_cidades[k], media_cidades[k]);
         }
         printf("\n");
     }
@@ -314,6 +334,10 @@ int main(void)
     // Metrics for the country
     printf("Brasil: menor: %d, maior: %d, mediana: %.2f, media: %.2f\n", menor_brasil, maior_brasil, mediana_brasil, media_brasil);
 
+    printf("\n");
+
+    printf("Melhor regiao: Regiao %d\n", regiao);
+    printf("Melhor cidade: Regiao %d, Cidade %d", regiao_cidade, cidade);
     fclose(fp);
     return(0);
 
