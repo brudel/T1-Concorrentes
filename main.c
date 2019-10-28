@@ -8,6 +8,7 @@ int maior_gen(int *matriz, int R, int C, int A, int *maior_cidades, int *maior_r
     int cidades = R*C;
     int start, end;
 
+    // Maior da cidade
     for (i = 0; i < cidades; i++)
     {
         start = A * i;
@@ -21,10 +22,11 @@ int maior_gen(int *matriz, int R, int C, int A, int *maior_cidades, int *maior_r
         maior = -1;
     }
 
+    // Maior da regiao
     for (i = 0; i < R; i++)
     {
-        start = i*C;
-        end = start+C;
+        start = i * C;
+        end = start + C;
         for (j = start; j < end; j++)
         {
             if(maior_cidades[j] > maior)
@@ -36,15 +38,17 @@ int maior_gen(int *matriz, int R, int C, int A, int *maior_cidades, int *maior_r
             maior_brasil = maior_regiao[i];
     }
 
+    // Maior do Brasil
     return maior_brasil;
 }
 
 int menor_gen(int *matriz, int R, int C, int A, int *menor_cidades, int *menor_regiao)
 {
     int i, j, menor = 101, menor_brasil = 101;
-    int cidades = R*C;
+    int cidades = R * C;
     int start, end;
 
+    // Menor da cidade
     for (i = 0; i < cidades; i++)
     {
         start = A * i;
@@ -58,10 +62,11 @@ int menor_gen(int *matriz, int R, int C, int A, int *menor_cidades, int *menor_r
         menor = 101;
     }
 
+    // Menor da regiao
     for (i = 0; i < R; i++)
     {
-        start = i*C;
-        end = start+C;
+        start = i * C;
+        end = start + C;
         for (j = start; j < end; j++)
         {
             if(menor_cidades[j] < menor)
@@ -73,6 +78,7 @@ int menor_gen(int *matriz, int R, int C, int A, int *menor_cidades, int *menor_r
             menor_brasil = menor_regiao[i];
     }
 
+    // Menor do Brasil
     return menor_brasil;
 }
 
@@ -81,73 +87,69 @@ int partition (int *arr, int low, int high, int C)
     int i, j;
     int pivot,swap;
 
-    // pivot (Element to be placed at right position)
     pivot = arr[high];
 
-    i = (low - 1);  // Index of smaller element
+    i = (low - 1);
 
     for (j = low; j <= high-1; j++)
     {
-        // If current element is smaller than or
-        // equal to pivot
         if (arr[j] <= pivot)
         {
-            i++;    // increment index of smaller element
-
-            // swap arr[i] and arr[j]
+            i++;
             swap = arr[i];
             arr[i] = arr[j];
             arr[j] = swap;
         }
     }
-
-    //swap arr[i + 1] and arr[high]
     swap = arr[(i + 1)];
     arr[(i + 1)] = arr[high];
     arr[high] = swap;
 
     return (i + 1);
 
-} // fim partition
+}
 
 void quicksort(int *arr, int low, int high, int C)
 {
     int pi;
     if (low < high)
     {
-        /* pi is partitioning index, arr[pi] is now
-           at right place */
         pi = partition(arr, low, high, C);
 
-        quicksort(arr, low, pi - 1, C);  // Before pi
-        quicksort(arr, pi + 1, high, C); // After pi
+        quicksort(arr, low, pi - 1, C);
+        quicksort(arr, pi + 1, high, C);
     }
-} // fim quicksort
+}
 
 // Ordena tam linhas passadas (ou seja, ordena cidades, regioes e o brasil)
 void ordena_linhas(int *matriz, int lin, int col, int tam)
 {
     int j;
     int inferior, superior;
-    for (j = 0; j < lin/tam; j++)
+    int linhas = lin/tam, largura = tam*col;
+
+    for (j = 0; j < linhas; j++)
     {
         inferior = tam*j*col;
         superior = tam*(j*col+col)-1;
         //manda o endereco do primeiro elemento da coluna, limites inf e sup e a largura da matriz
-        quicksort(&matriz[0], inferior, superior, tam*col);
+        quicksort(&matriz[0], inferior, superior, largura);
     }
 }
 
+// Mediana de acordo com tam (tam = 1 - cidades, tam = C - regioes, tam = R*C - Brasil)
 void calcula_mediana(int *matriz, float *vet, int lin, int col, int tam)
 {
     int j;
-    for (j = 0; j < lin/tam; j++)
+    int linhas = lin/tam;
+
+    for (j = 0; j < linhas; j++)
     {
         vet[j] = matriz[tam*col*j + tam*col/2];
-        if(!(lin%2))
+        if(!(lin % 2))
         {
-            vet[j]+=matriz[tam*col*j + tam*col/2-1];
-            vet[j]= (float )vet[j]*0.5;
+            vet[j] += matriz[tam*col*j + tam*col/2-1];
+            vet[j] = (float )vet[j]*0.5;
         }
     }
 }
@@ -156,19 +158,21 @@ void calcula_mediana(int *matriz, float *vet, int lin, int col, int tam)
 float calcula_media(int *matriz, float *vet_cidade, float *vet_reg, int R, int C, int A)
 {
     int i,j;
-    int start, end;
+    int start, end, linhas = R*C;
     float soma = 0;
 
-    for(i=0; i<R*C; i++)
+    // Media das cidades
+    for(i=0; i<linhas; i++)
     {
         for(j=0; j<A; j++)
         {
-            soma+=matriz[i*A+j];
+            soma += matriz[i*A+j];
         }
-        vet_cidade[i]=(float) soma/A;
+        vet_cidade[i] = (float) soma/A;
         soma=0;
     }
 
+    // Media das regioes
     float soma_reg = 0;
     for (i = 0; i < R; i++)
     {
@@ -176,35 +180,77 @@ float calcula_media(int *matriz, float *vet_cidade, float *vet_reg, int R, int C
         end = start+C;
         for (j = start; j < end; j++)
         {
-            soma+=vet_cidade[j];
+            soma += vet_cidade[j];
         }
         vet_reg[i] = (float) soma/C;
-        soma_reg+=vet_reg[i];
+        soma_reg += vet_reg[i];
         soma = 0;
     }
 
+    // Media do Brasil
     return soma_reg/R;
 }
 
-void calcula_variancia(double *matriz, double *media,double *variancia, int lin, int col)
+float calcula_variancia(int *matriz, float *media_cidade, float *media_regiao, float media_brasil,float *variancia_cidade, float *variancia_regiao, int R, int C, int A)
 {
-    int i,j;
-    double soma;
-    for(i=0;i<col;i++){
-        soma=0;
-        for(j=0;j<lin;j++){
-            soma+=pow((matriz[j*col+i]-media[i]),2);
+    int i, j, k, start, end, linhas = R*C, alunos = R*C*A;
+    float soma = 0;
+
+    // Variancia das cidades
+    for(i = 0; i < linhas; i++)
+    {
+        for(j = 0; j < A; j++)
+        {
+            soma += pow((matriz[i*A+j] - media_cidade[i]), 2);
         }
-        variancia[i]=soma/(lin-1);
+        variancia_cidade[i] = (float) soma/(A - 1);
+        soma = 0;
     }
+
+    // Variancia das regioes
+    for (i = 0; i < R; i++)
+    {
+        start = i*C;
+        end = start+C;
+
+        for(k = start; k < end; k++)
+        {
+            for(j = 0; j < A; j++)
+            {
+                soma += pow((matriz[k*A+j] - media_regiao[i]), 2);
+            }
+        }
+        variancia_regiao[i] = (float) soma/(C*A - 1);
+        soma = 0;
+    }
+
+    // Variancia do Brasil
+    for(i = 0; i < alunos; i++)
+    {
+        soma += pow((matriz[i] - media_brasil), 2);
+    }
+    float variancia_brasil = (float) soma/(alunos - 1);
+    return variancia_brasil;
 }
 
-void calcula_desvio_padrao(double *variancia,double *dp, int col)
+float calcula_desvio_padrao(float *variancia_cidade, float *variancia_regiao, float variancia_brasil,float *dp_cidades, float *dp_regiao, int R, int C)
 {
-    int i;
-    for(i=0;i<col;i++){
-        dp[i]=sqrt(variancia[i]);
+    int i, linhas = R*C;
+
+    // DP das cidades
+    for(i = 0; i < linhas; i++)
+    {
+        dp_cidades[i] = sqrt(variancia_cidade[i]);
     }
+
+    // DP das regioes
+    for(i = 0; i < R; i++)
+    {
+        dp_regiao[i] = sqrt(variancia_regiao[i]);
+    }
+
+    // DP do Brasil
+    return sqrt(variancia_brasil);
 }
 
 int main(void)
@@ -240,13 +286,14 @@ int main(void)
     }
 
     // Print array in matrix's representation
+    /*
     for (i = 0; i < R*C; i++)
     {
         for (j = 0; j < A; j++)
             printf("%d ", matriz[i*A+j]);
         printf("\n");
     }
-
+    */
     /// Calculate the metrics
 
     /// Max and Min
@@ -258,7 +305,6 @@ int main(void)
     int menor_brasil = menor_gen(matriz, R, C, A, menor_cidades, menor_regiao);
 
     /// Median
-
     /*
     printf("\n\n\n");
     for (i = 0; i < R*C; i++)
@@ -269,19 +315,20 @@ int main(void)
     }
     */
     float *mediana_cidades = (float *) malloc(R*C*sizeof(float));
-    float *mediana_regioes = (float *) malloc(R*sizeof(float));
+    float *mediana_regiao = (float *) malloc(R*sizeof(float));
     float mediana_brasil;
 
+    // Mediana da cidade
     ordena_linhas(matrizOrdenada, R*C, A, 1);
     calcula_mediana(matrizOrdenada, mediana_cidades, R*C, A,1);
 
+    // Mediana da regiao
     ordena_linhas(matrizOrdenada, R*C, A, C);
-    calcula_mediana(matrizOrdenada, mediana_regioes, R*C, A, C);
+    calcula_mediana(matrizOrdenada, mediana_regiao, R*C, A, C);
 
+    // Mediana do Brasil
     ordena_linhas(matrizOrdenada, R*C, A, R*C);
     calcula_mediana(matrizOrdenada, &mediana_brasil, R*C, A, R*C);
-
-
 
     /// Mean
     float *media_cidades = (float *) malloc(R*C*sizeof(float));
@@ -289,20 +336,31 @@ int main(void)
     float media_brasil = calcula_media(matriz,media_cidades,media_regiao,R,C,A);
 
     /// Deviation
-
+    float *variancia_cidade = (float *) malloc(R*C*sizeof(float));
+    float *variancia_regiao = (float *) malloc(R*sizeof(float));
+    float variancia_brasil;
+    float *dp_cidades = (float *) malloc(R*C*sizeof(float));
+    float *dp_regiao = (float *) malloc(R*sizeof(float));
+    float dp_brasil;
+    variancia_brasil = calcula_variancia(matriz, media_cidades, media_regiao, media_brasil, variancia_cidade, variancia_regiao, R, C, A);
+    dp_brasil = calcula_desvio_padrao(variancia_cidade, variancia_regiao, variancia_brasil, dp_cidades, dp_regiao, R, C);
 
     /// Best city and region
     float maior = -1;
     int cidade, regiao_cidade, regiao;
-    for(i = 0; i < R; i++){
-        if(media_regiao[i] > maior){
+    for(i = 0; i < R; i++)
+    {
+        if(media_regiao[i] > maior)
+        {
             maior = media_regiao[i];
             regiao = i;
         }
     }
     maior = -1;
-    for(i = 0; i < R*C; i++){
-        if(media_cidades[i] > maior){
+    for(i = 0; i < R*C; i++)
+    {
+        if(media_cidades[i] > maior)
+        {
             maior = media_cidades[i];
             cidade = i;
         }
@@ -311,6 +369,8 @@ int main(void)
     cidade = cidade%C;
 
 
+    /// Printing results
+
     // Metrics for cities
     int k;
     for (i = 0; i < R; i++)
@@ -318,7 +378,7 @@ int main(void)
         for(j = 0; j < C; j++)
         {
             k = i*C+j;
-            printf("Reg %d - Cid %d: menor: %d, maior: %d, mediana: %.2f, media: %.2f\n", i, j, menor_cidades[k], maior_cidades[k], mediana_cidades[k], media_cidades[k]);
+            printf("Reg %d - Cid %d: menor: %d, maior: %d, mediana: %.2f, media: %.2f e DP: %.2f\n", i, j, menor_cidades[k], maior_cidades[k], mediana_cidades[k], media_cidades[k], dp_cidades[k]);
         }
         printf("\n");
     }
@@ -326,18 +386,19 @@ int main(void)
     // Metrics for regions
     for (i = 0; i < R; i++)
     {
-        printf("Reg %d: menor: %d, maior: %d, mediana: %.2f, media: %.2f\n", i, menor_regiao[i], maior_regiao[i], mediana_regioes[i], media_regiao[i]);
+        printf("Reg %d: menor: %d, maior: %d, mediana: %.2f, media: %.2f e DP: %.2f\n", i, menor_regiao[i], maior_regiao[i], mediana_regiao[i], media_regiao[i], dp_regiao[i]);
     }
 
     printf("\n");
 
     // Metrics for the country
-    printf("Brasil: menor: %d, maior: %d, mediana: %.2f, media: %.2f\n", menor_brasil, maior_brasil, mediana_brasil, media_brasil);
+    printf("Brasil: menor: %d, maior: %d, mediana: %.2f, media: %.2f e DP: %.2f\n", menor_brasil, maior_brasil, mediana_brasil, media_brasil, dp_brasil);
 
     printf("\n");
 
     printf("Melhor regiao: Regiao %d\n", regiao);
     printf("Melhor cidade: Regiao %d, Cidade %d", regiao_cidade, cidade);
+
     fclose(fp);
     return(0);
 
