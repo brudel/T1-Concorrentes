@@ -397,7 +397,7 @@ int main(void)
     printf("\n");
 
     printf("Melhor regiao: Regiao %d\n", regiao);
-    printf("Melhor cidade: Regiao %d, Cidade %d", regiao_cidade, cidade);
+    printf("Melhor cidade: Regiao %d, Cidade %d\n", regiao_cidade, cidade);
 
     fclose(fp);
     return(0);
