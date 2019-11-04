@@ -80,14 +80,14 @@ int main(void)
     double tempoExec;
     double nclocksMedia, nclocksSortingC, nclocksSortingR, nclocksSortingP;
 
-    FILE *fp = fopen("entrada.txt", "r");
-    if(fp == NULL)
-    {
-        printf("Unable to open file!");
-        exit(1);
-    }
+    // FILE *fp = fopen("entrada.txt", "r");
+    // if(fp == NULL)
+    // {
+    //     printf("Unable to open file!");
+    //     exit(1);
+    // }
 
-    while(fscanf(fp, "%d", &lines[i]) != EOF)
+    while(scanf("%d", &lines[i]) != EOF)
         i++;
 
     int R = lines[0];
@@ -104,12 +104,12 @@ int main(void)
     }
 
     // Print array in matrix's representation    
-    for (i = 0; i < R*C; i++)
-    {
-        for (j = 0; j < A; j++)
-            printf("%d ", matriz[i*A+j]);
-        printf("\n");
-    }    
+    // for (i = 0; i < R*C; i++)
+    // {
+    //     for (j = 0; j < A; j++)
+    //         printf("%d ", matriz[i*A+j]);
+    //     printf("\n");
+    // }    
    
     /// Calculate the metrics
     /// Mean and deviation
@@ -244,36 +244,41 @@ int main(void)
     /// Printing results
 
     // Metrics for cities
-    int k;
-    for (i = 0; i < R; i++)
-    {
-        for(j = 0; j < C; j++)
-        {
-            k = i*C+j;
-            printf("Reg %d - Cid %d: menor: %d, maior: %d, mediana: %.2f, media: %.2f e DP: %.2f\n", i, j, menor_cidades[k], maior_cidades[k], mediana_cidades[k], media_cidades[k], dp_cidades[k]);
-        }
-        printf("\n");
-    }
+    // int k;
+    // for (i = 0; i < R; i++)
+    // {
+    //     for(j = 0; j < C; j++)
+    //     {
+    //         k = i*C+j;
+    //         printf("Reg %d - Cid %d: menor: %d, maior: %d, mediana: %.2f, media: %.2f e DP: %.2f\n", i, j, menor_cidades[k], maior_cidades[k], mediana_cidades[k], media_cidades[k], dp_cidades[k]);
+    //     }
+    //     printf("\n");
+    // }
 
-    // Metrics for regions
-    for (i = 0; i < R; i++)
-    {
-        printf("Reg %d: menor: %d, maior: %d, mediana: %.2f, media: %.2f e DP: %.2f\n", i, menor_regiao[i], maior_regiao[i], mediana_regiao[i], media_regiao[i], dp_regiao[i]);
-    }
+    // // Metrics for regions
+    // for (i = 0; i < R; i++)
+    // {
+    //     printf("Reg %d: menor: %d, maior: %d, mediana: %.2f, media: %.2f e DP: %.2f\n", i, menor_regiao[i], maior_regiao[i], mediana_regiao[i], media_regiao[i], dp_regiao[i]);
+    // }
 
-    printf("\n");
+    // printf("\n");
 
-    // Metrics for the country
-    printf("Brasil: menor: %d, maior: %d, mediana: %.2f, media: %.2f e DP: %.2f\n", menor_brasil, maior_brasil, mediana_brasil, media_brasil, dp_brasil);
+    // // Metrics for the country
+    // printf("Brasil: menor: %d, maior: %d, mediana: %.2f, media: %.2f e DP: %.2f\n", menor_brasil, maior_brasil, mediana_brasil, media_brasil, dp_brasil);
 
-    printf("\n");
+    // printf("\n");
 
-    printf("Melhor regiao: Regiao %d\n", melhor_regiao);
-    printf("Melhor cidade: Regiao %d, Cidade %d\n", melhor_cidade_reg, melhor_cidade);
+    // printf("Melhor regiao: Regiao %d\n", melhor_regiao);
+    // printf("Melhor cidade: Regiao %d, Cidade %d\n", melhor_cidade_reg, melhor_cidade);
 
-    printf("Tempo de resposta sem considerar E/S, em segundos: %.3lfs\n", tempoExec);
+    // printf("Tempo de resposta sem considerar E/S, em segundos: %.3lfs\n", tempoExec);
+    double tMedia, tC, tR, tP;
+    tMedia = nclocksMedia/CLOCKS_PER_SEC;
+    tC = nclocksSortingC/CLOCKS_PER_SEC;
+    tR = nclocksSortingR/CLOCKS_PER_SEC;
+    tP = nclocksSortingP/CLOCKS_PER_SEC;
+    printf("tMedia=%.3lf\n tCidades=%.3lf\n tRegioes=%.3lf\n tPais=%.3lf\n", tMedia, tC, tR, tP);
 
-    fclose(fp);
     return(0);
 
 }
