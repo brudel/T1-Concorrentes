@@ -3,6 +3,7 @@
 #include <math.h>
 #include <omp.h>
 #include <limits.h>
+#include <time.h>
 
 void counting_sort(int *vector, int n) {
 	int i, min = INT_MAX, max = INT_MIN;
@@ -17,7 +18,7 @@ void counting_sort(int *vector, int n) {
 	// Declarar o vetor auxiliar (max-min+1)
 	Aux = (int *) calloc(max-min+1, sizeof(int));   // c2 * (max-min+1)
 
-	// Contar a partir do vertor original, quantas vezes cada chave ocorre
+	// Contar a partir do vetor original, quantas vezes cada chave ocorre
 	for (i = 0; i < n; i++) Aux[vector[i]-min]++;  // c3 * n
 
 	// Função cumulativa
@@ -76,6 +77,8 @@ int main(void)
 {
     /// Read param from file
     int lines[4], i = 0, j;
+    double tempoExec;
+    double nclocksMedia, nclocksSortingC, nclocksSortingR, nclocksSortingP;
 
     FILE *fp = fopen("entrada.txt", "r");
     if(fp == NULL)
@@ -109,7 +112,6 @@ int main(void)
     }    
    
     /// Calculate the metrics
-
     /// Mean and deviation
     float *media_cidades = (float *) malloc(R*C*sizeof(float));
     float *media_regiao = (float *) malloc(R*sizeof(float));
@@ -127,6 +129,8 @@ int main(void)
 
     float s1, s2, s3, s4, s5 = 0, s6 = 0;
     float media;
+    tempoExec = clock();
+    nclocksMedia = clock();
     for(int i=0; i<R; i++){
         s3 = 0;
         s4 = 0;
@@ -173,6 +177,7 @@ int main(void)
     // calcula media e dp do país
     media_brasil = s5/(R*C*A);
     dp_brasil = sqrt((s6  -  (float) s5 * s5 / (R*C*A))    /    (R*C*A - 1));
+    nclocksMedia = clock() - nclocksMedia;
 
     /// Median, max and min
     float *mediana_cidades = (float *) malloc(R*C*sizeof(float));
@@ -188,10 +193,12 @@ int main(void)
     int menor_brasil = INT_MAX;
 
     // Mediana da cidade
+    nclocksSortingC = clock();
     ordena_linhas(matriz, R*C, A);
     encontra_maiores(matriz, maior_cidades, R*C, A);
     encontra_menores(matriz, menor_cidades, R*C, A);
     calcula_mediana(matriz, mediana_cidades, R*C, A);
+    nclocksSortingC = clock() - nclocksSortingC;
 
     // printf("\n");
     // for (i = 0; i < R*C; i++)
@@ -202,10 +209,12 @@ int main(void)
     // }
 
     // Mediana da regiao
+    nclocksSortingR = clock();
     ordena_linhas(matriz, R, A*C);
     encontra_maiores(matriz, maior_regiao, R, A*C);
     encontra_menores(matriz, menor_regiao, R, A*C);
     calcula_mediana(matriz, mediana_regiao, R, A*C);
+    nclocksSortingR = clock() - nclocksSortingR;
 
     // printf("\n");
     // for (i = 0; i < R*C; i++)
@@ -216,11 +225,14 @@ int main(void)
     // }
 
     // Mediana do Brasil
+    nclocksSortingP = clock();
     ordena_linhas(matriz, 1, A*C*R);
     encontra_maiores(matriz, &maior_brasil, 1, A*C*R);
     encontra_menores(matriz, &menor_brasil, 1, A*C*R);
     calcula_mediana(matriz, &mediana_brasil, 1, A*C*R);
+    nclocksSortingP = clock() - nclocksSortingP;
 
+    tempoExec = (clock() - tempoExec)/CLOCKS_PER_SEC;
     // printf("\n");
     // for (i = 0; i < R*C; i++)
     // {
@@ -258,6 +270,8 @@ int main(void)
 
     printf("Melhor regiao: Regiao %d\n", melhor_regiao);
     printf("Melhor cidade: Regiao %d, Cidade %d\n", melhor_cidade_reg, melhor_cidade);
+
+    printf("Tempo de resposta sem considerar E/S, em segundos: %.3lfs\n", tempoExec);
 
     fclose(fp);
     return(0);
