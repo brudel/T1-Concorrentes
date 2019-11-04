@@ -258,7 +258,7 @@ int main(void)
     /// Read param from file
     int lines[4], i = 0, j;
 
-    FILE *fp = fopen("entrada.txt", "r");
+    FILE* fp = fopen("entrada.txt", "r");
     if(fp == NULL)
     {
         printf("Unable to open file!");
@@ -402,4 +402,20 @@ int main(void)
     fclose(fp);
     return(0);
 
+}
+
+
+mediana:  n (1 se ordenado)
+média:  n
+
+
+void media_padrao(int* vet, int n, int* media, int* dp) {
+	long int m, d;
+
+	for (int i = 0; i < n; ++i) {
+		m += vet[i], d += vet[i]*vet[i];
+	}
+
+	*media = (float) m / n;
+	dp = sqrt((d  -  (float) m * m / n)    /    (n - 1));
 }
