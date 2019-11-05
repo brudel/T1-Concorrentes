@@ -270,7 +270,7 @@ int main(void)
     nclocksSortingP = clock() - nclocksSortingP;
 
     tempoExec = (clock() - tempoExec)/CLOCKS_PER_SEC;
-    
+ 
     // printf("\n");
     // for (i = 0; i < R*C; i++)
     // {
