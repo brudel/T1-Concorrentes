@@ -5,6 +5,71 @@
 #include <limits.h>
 #include <time.h>
 
+#define swap(i, j) aux = i, i = j, j = aux;
+
+int max(int* vector, int n){
+    int m = vector[0];
+    for(int i=1;i<n;i++){
+        if(vector[i] > m){
+            m = vector[i];
+        }
+    }
+    return m;
+}
+
+int min(int* vector, int n){
+    int m = vector[0];
+    for(int i=1;i<n;i++){
+        if(vector[i] < m){
+            m = vector[i];
+        }
+    }
+    return m;
+}
+
+int quickoddmedian(int* vet, int high, int target) {
+    int pivo = vet[0], aux, i = 0, rnd = rand() % high;
+    swap(vet[0], vet[rnd]);
+
+    for (int j = 1; j < high; j++)
+        if (vet[j] < pivo) {
+            ++i;
+            swap(vet[i], vet[j]);
+        }
+
+    swap(vet[0], vet[i]);
+    if (target == i)
+        return vet[i];
+
+    if (target < i)
+        return quickoddmedian(vet, i, target);
+    else
+        return quickoddmedian(vet + i + 1, high - i - 1, target - i - 1);
+}
+
+int quickpairmedian(int* vet, int high, int target) {
+    int pivo = vet[0], aux, i = 0, rnd = rand() % high;
+    swap(vet[0], vet[rnd]);
+
+    for (int j = 1; j < high; j++)
+        if (vet[j] < pivo) {
+            ++i;
+            swap(vet[i], vet[j]);
+        }
+
+    swap(vet[0], vet[i]);
+    if (target == i - 1)
+        return (float) (vet[i] + min(vet + i + 1, high - i - 1)) / 2;
+
+    if (target == i)
+        return (float) (vet[i] + max(vet, i + 1)) / 2;
+
+    if (target < i)
+        return quickpairmedian(vet, i, target);
+    else
+        return quickpairmedian(vet + i + 1, high - i - 1, target - i - 1);
+}
+
 void counting_sort(int *vector, int n) {
 	int i, min = INT_MAX, max = INT_MIN;
 	int *Aux, *R;
@@ -121,7 +186,20 @@ int main(void)
     float *dp_regiao = (float *) malloc(R*sizeof(float));
     float dp_brasil;
 
-    // Calcula media e desvio padrão das cidades, regioes e país, propagando as somas parciais
+    /// Median, max and min
+    float *mediana_cidades = (float *) malloc(R*C*sizeof(float));
+    float *mediana_regiao = (float *) malloc(R*sizeof(float));
+    float mediana_brasil;
+
+    int *maior_cidades = (int *) malloc(R*C*sizeof(int));
+    int *maior_regiao = (int *) malloc(R*sizeof(int));
+    int maior_brasil = -1;
+
+    int *menor_cidades = (int *) malloc(R*C*sizeof(int));
+    int *menor_regiao = (int *) malloc(R*sizeof(int));
+    int menor_brasil = INT_MAX;
+
+    // Calcula media, desvio padrão, max e min das cidades, regioes e país, propagando as somas parciais
     //  - Ex: a soma total de cada cidade é usada como soma parcial para a media da região
     // encontra também a melhor cidade e a melhor região
     float maior_cid = -1, maior_reg = -1;
@@ -129,18 +207,33 @@ int main(void)
 
     float s1, s2, s3, s4, s5 = 0, s6 = 0;
     float media;
+    int elem, maiorC = -1, maiorR = -1, menorC = INT_MAX, menorR = INT_MAX;
     tempoExec = clock();
     nclocksMedia = clock();
     for(int i=0; i<R; i++){
         s3 = 0;
         s4 = 0;
+        maiorR = -1;
+        menorR = INT_MAX;
         for(int j=0; j<C; j++){
             s1 = 0;
             s2 = 0;
-            // calcula soma e soma do quadrado das notas da cidade
+            maiorC = -1;
+            menorC = INT_MAX;
             for(int k=0; k<A; k++){
-                s1 += matriz[i*C*A + j*A + k];
-                s2 += matriz[i*C*A + j*A + k]*matriz[i*C*A + j*A + k];
+                // calcula soma e soma do quadrado das notas da cidade
+                elem = matriz[i*C*A + j*A + k];
+                s1 += elem;
+                s2 += elem * elem;
+
+                // compara com maior e menor nota da cidade
+                if(maiorC < elem){
+                    maiorC = elem;
+                }
+
+                if(menorC > elem){
+                    menorC = elem;
+                }
             }
             // calcula media e dp
             media = s1/A;
@@ -152,6 +245,19 @@ int main(void)
                 maior_cid = media;
                 melhor_cidade = j;
                 melhor_cidade_reg = i;
+            }
+
+            // salva maior nota da cidade
+            maior_cidades[i*C + j] = maiorC;
+            menor_cidades[i*C + j] = menorC;
+
+            // compara com maior e menor nota da regiao
+            if(maiorR < maiorC){
+                maiorR = maiorC;
+            }
+
+            if(menorR > menorC){
+                menorR = menorC;
             }
 
             // propaga somas para o calculo da regiao
@@ -170,6 +276,19 @@ int main(void)
             melhor_regiao = i;
         }
 
+        // salva maior e menor nota da região
+        maior_regiao[i] = maiorR;
+        menor_regiao[i] = menorR;
+
+        // compara com maior e menor nota do pais
+        if(maior_brasil < maiorR){
+            maior_brasil = maiorR;
+        }
+        
+        if(menor_brasil > menorR){
+            menor_brasil = menorR;
+        }
+
         // propaga somas para o calculo do país
         s5 += s3;
         s6 += s4;
@@ -179,25 +298,26 @@ int main(void)
     dp_brasil = sqrt((s6  -  (float) s5 * s5 / (R*C*A))    /    (R*C*A - 1));
     nclocksMedia = clock() - nclocksMedia;
 
-    /// Median, max and min
-    float *mediana_cidades = (float *) malloc(R*C*sizeof(float));
-    float *mediana_regiao = (float *) malloc(R*sizeof(float));
-    float mediana_brasil;
-
-    int *maior_cidades = (int *) malloc(R*C*sizeof(int));
-    int *maior_regiao = (int *) malloc(R*sizeof(int));
-    int maior_brasil = 0;
-
-    int *menor_cidades = (int *) malloc(R*C*sizeof(int));
-    int *menor_regiao = (int *) malloc(R*sizeof(int));
-    int menor_brasil = INT_MAX;
-
     // Mediana da cidade
     nclocksSortingC = clock();
-    ordena_linhas(matriz, R*C, A);
-    encontra_maiores(matriz, maior_cidades, R*C, A);
-    encontra_menores(matriz, menor_cidades, R*C, A);
-    calcula_mediana(matriz, mediana_cidades, R*C, A);
+    // ordena_linhas(matriz, R*C, A);
+    // encontra_maiores(matriz, maior_cidades, R*C, A);
+    // encontra_menores(matriz, menor_cidades, R*C, A);
+    // calcula_mediana(matriz, mediana_cidades, R*C, A);
+    if(!(A%2)){
+        for(int i=0; i<R; i++){
+            for(int j=0; j<C; j++){
+                mediana_cidades[i*C + j] = quickpairmedian(&matriz[i*C*A + j*A], A, A/2);
+            }
+        }
+    } else {
+        for(int i=0; i<R; i++){
+            for(int j=0; j<C; j++){
+                mediana_cidades[i*C + j] = quickoddmedian(&matriz[i*C*A + j*A], A, A/2);
+            }
+        }
+    }
+    
     nclocksSortingC = clock() - nclocksSortingC;
 
     // printf("\n");
@@ -211,8 +331,8 @@ int main(void)
     // Mediana da regiao
     nclocksSortingR = clock();
     ordena_linhas(matriz, R, A*C);
-    encontra_maiores(matriz, maior_regiao, R, A*C);
-    encontra_menores(matriz, menor_regiao, R, A*C);
+    // encontra_maiores(matriz, maior_regiao, R, A*C);
+    // encontra_menores(matriz, menor_regiao, R, A*C);
     calcula_mediana(matriz, mediana_regiao, R, A*C);
     nclocksSortingR = clock() - nclocksSortingR;
 
@@ -227,12 +347,13 @@ int main(void)
     // Mediana do Brasil
     nclocksSortingP = clock();
     ordena_linhas(matriz, 1, A*C*R);
-    encontra_maiores(matriz, &maior_brasil, 1, A*C*R);
-    encontra_menores(matriz, &menor_brasil, 1, A*C*R);
+    // encontra_maiores(matriz, &maior_brasil, 1, A*C*R);
+    // encontra_menores(matriz, &menor_brasil, 1, A*C*R);
     calcula_mediana(matriz, &mediana_brasil, 1, A*C*R);
     nclocksSortingP = clock() - nclocksSortingP;
 
     tempoExec = (clock() - tempoExec)/CLOCKS_PER_SEC;
+
     // printf("\n");
     // for (i = 0; i < R*C; i++)
     // {
@@ -244,34 +365,34 @@ int main(void)
     /// Printing results
 
     // Metrics for cities
-    // int k;
-    // for (i = 0; i < R; i++)
-    // {
-    //     for(j = 0; j < C; j++)
-    //     {
-    //         k = i*C+j;
-    //         printf("Reg %d - Cid %d: menor: %d, maior: %d, mediana: %.2f, media: %.2f e DP: %.2f\n", i, j, menor_cidades[k], maior_cidades[k], mediana_cidades[k], media_cidades[k], dp_cidades[k]);
-    //     }
-    //     printf("\n");
-    // }
+    int k;
+    for (i = 0; i < R; i++)
+    {
+        for(j = 0; j < C; j++)
+        {
+            k = i*C+j;
+            printf("Reg %d - Cid %d: menor: %d, maior: %d, mediana: %.2f, media: %.2f e DP: %.2f\n", i, j, menor_cidades[k], maior_cidades[k], mediana_cidades[k], media_cidades[k], dp_cidades[k]);
+        }
+        printf("\n");
+    }
 
-    // // Metrics for regions
-    // for (i = 0; i < R; i++)
-    // {
-    //     printf("Reg %d: menor: %d, maior: %d, mediana: %.2f, media: %.2f e DP: %.2f\n", i, menor_regiao[i], maior_regiao[i], mediana_regiao[i], media_regiao[i], dp_regiao[i]);
-    // }
+    // Metrics for regions
+    for (i = 0; i < R; i++)
+    {
+        printf("Reg %d: menor: %d, maior: %d, mediana: %.2f, media: %.2f e DP: %.2f\n", i, menor_regiao[i], maior_regiao[i], mediana_regiao[i], media_regiao[i], dp_regiao[i]);
+    }
 
-    // printf("\n");
+    printf("\n");
 
-    // // Metrics for the country
-    // printf("Brasil: menor: %d, maior: %d, mediana: %.2f, media: %.2f e DP: %.2f\n", menor_brasil, maior_brasil, mediana_brasil, media_brasil, dp_brasil);
+    // Metrics for the country
+    printf("Brasil: menor: %d, maior: %d, mediana: %.2f, media: %.2f e DP: %.2f\n", menor_brasil, maior_brasil, mediana_brasil, media_brasil, dp_brasil);
 
-    // printf("\n");
+    printf("\n");
 
-    // printf("Melhor regiao: Regiao %d\n", melhor_regiao);
-    // printf("Melhor cidade: Regiao %d, Cidade %d\n", melhor_cidade_reg, melhor_cidade);
+    printf("Melhor regiao: Regiao %d\n", melhor_regiao);
+    printf("Melhor cidade: Regiao %d, Cidade %d\n", melhor_cidade_reg, melhor_cidade);
 
-    // printf("Tempo de resposta sem considerar E/S, em segundos: %.3lfs\n", tempoExec);
+    printf("Tempo de resposta sem considerar E/S, em segundos: %.3lfs\n", tempoExec);
     double tMedia, tC, tR, tP;
     tMedia = nclocksMedia/CLOCKS_PER_SEC;
     tC = nclocksSortingC/CLOCKS_PER_SEC;
