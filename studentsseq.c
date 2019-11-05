@@ -47,7 +47,7 @@ int quickoddmedian(int* vet, int high, int target) {
         return quickoddmedian(vet + i + 1, high - i - 1, target - i - 1);
 }
 
-int quickpairmedian(int* vet, int high, int target) {
+int quickevenmedian(int* vet, int high, int target) {
     int pivo = vet[0], aux, i = 0, rnd = rand() % high;
     swap(vet[0], vet[rnd]);
 
@@ -65,9 +65,9 @@ int quickpairmedian(int* vet, int high, int target) {
         return (float) (vet[i] + max(vet, i + 1)) / 2;
 
     if (target < i)
-        return quickpairmedian(vet, i, target);
+        return quickevenmedian(vet, i, target);
     else
-        return quickpairmedian(vet + i + 1, high - i - 1, target - i - 1);
+        return quickevenmedian(vet + i + 1, high - i - 1, target - i - 1);
 }
 
 void counting_sort(int *vector, int n) {
@@ -307,7 +307,7 @@ int main(void)
     if(!(A%2)){
         for(int i=0; i<R; i++){
             for(int j=0; j<C; j++){
-                mediana_cidades[i*C + j] = quickpairmedian(&matriz[i*C*A + j*A], A, A/2);
+                mediana_cidades[i*C + j] = quickevenmedian(&matriz[i*C*A + j*A], A, A/2);
             }
         }
     } else {
