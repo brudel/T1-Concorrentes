@@ -28,8 +28,9 @@ int min(int* vector, int n){
 }
 
 int quickoddmedian(int* vet, int high, int target) {
-    int pivo = vet[0], aux, i = 0, rnd = rand() % high;
+    int pivo, aux, i = 0, rnd = rand() % high;
     swap(vet[0], vet[rnd]);
+    pivo = vet[0];
 
     for (int j = 1; j < high; j++)
         if (vet[j] < pivo) {
@@ -47,9 +48,10 @@ int quickoddmedian(int* vet, int high, int target) {
         return quickoddmedian(vet + i + 1, high - i - 1, target - i - 1);
 }
 
-int quickevenmedian(int* vet, int high, int target) {
-    int pivo = vet[0], aux, i = 0, rnd = rand() % high;
+float quickevenmedian(int* vet, int high, int target) {
+    int pivo, aux, i = 0, rnd = rand() % high;
     swap(vet[0], vet[rnd]);
+    pivo = vet[0];
 
     for (int j = 1; j < high; j++)
         if (vet[j] < pivo) {
@@ -58,11 +60,11 @@ int quickevenmedian(int* vet, int high, int target) {
         }
 
     swap(vet[0], vet[i]);
-    if (target == i - 1)
-        return (float) (vet[i] + min(vet + i + 1, high - i - 1)) / 2;
-
     if (target == i)
-        return (float) (vet[i] + max(vet, i + 1)) / 2;
+        return (float) (vet[i] + max(vet, i)) / 2;
+
+    if (target == i + 1)
+        return (float) (vet[i] + min(vet + i + 1, high - i - 1)) / 2;
 
     if (target < i)
         return quickevenmedian(vet, i, target);
@@ -71,32 +73,32 @@ int quickevenmedian(int* vet, int high, int target) {
 }
 
 void counting_sort(int *vector, int n) {
-	int i, min = INT_MAX, max = INT_MIN;
-	int *Aux, *R;
+    int i, min = INT_MAX, max = INT_MIN;
+    int *Aux, *R;
 
-	// Encontrar a chave mínima e a máxima
-	for (i = 0; i < n; i++) {			// c1 * n
-		if (vector[i] > max) max = vector[i];
-		if (vector[i] < min) min = vector[i];
-	}
+    // Encontrar a chave mínima e a máxima
+    for (i = 0; i < n; i++) {            // c1 * n
+        if (vector[i] > max) max = vector[i];
+        if (vector[i] < min) min = vector[i];
+    }
 
-	// Declarar o vetor auxiliar (max-min+1)
-	Aux = (int *) calloc(max-min+1, sizeof(int));   // c2 * (max-min+1)
+    // Declarar o vetor auxiliar (max-min+1)
+    Aux = (int *) calloc(max-min+1, sizeof(int));   // c2 * (max-min+1)
 
-	// Contar a partir do vetor original, quantas vezes cada chave ocorre
-	for (i = 0; i < n; i++) Aux[vector[i]-min]++;  // c3 * n
+    // Contar a partir do vetor original, quantas vezes cada chave ocorre
+    for (i = 0; i < n; i++) Aux[vector[i]-min]++;  // c3 * n
 
-	// Função cumulativa
-	for (i = 1; i < max-min+1; i++) Aux[i] += Aux[i-1];   // c4 * (max-min)
+    // Função cumulativa
+    for (i = 1; i < max-min+1; i++) Aux[i] += Aux[i-1];   // c4 * (max-min)
 
-	// Ordenação ocorre aqui!
-	R = (int *) malloc(sizeof(int) * n);
+    // Ordenação ocorre aqui!
+    R = (int *) malloc(sizeof(int) * n);
 
-	for (i = n-1; i >= 0; i--) R[--Aux[vector[i]-min]] = vector[i]; // c5 * n
-	for (i = 0; i < n; i++) vector[i] = R[i];		// c6 * n
+    for (i = n-1; i >= 0; i--) R[--Aux[vector[i]-min]] = vector[i]; // c5 * n
+    for (i = 0; i < n; i++) vector[i] = R[i];        // c6 * n
 
-	free(Aux);
-	free(R);
+    free(Aux);
+    free(R);
 }
 
 // Ordena lin linhas passadas (ou seja, ordena cidades, regioes e o brasil dependendo do valor de col)
