@@ -5,6 +5,7 @@
 #include <time.h>
 
 #define swap(i, j) aux = i, i = j, j = aux;
+#define MAX_VAL 101
 
 typedef int estogram[100];
 
@@ -28,7 +29,7 @@ void analyzepart(estogram cid, estogram reg, data* d, int n) {
 		d->median = (i + d->median) / 2;
 	}
 
-	for (; i < 100; ++i) {
+	for (; i < MAX_VAL; ++i) {
 		sum += cid[i] * i;
 		sumquad += cid[i] * i * i;
 		reg[i] += cid[i];
@@ -53,7 +54,7 @@ void justanalyze(estogram est, data* d, int n) {
 		d->median = (i + d->median) / 2;
 	}
 
-	for (; i < 100; ++i) {
+	for (; i < MAX_VAL; ++i) {
 		sum += est[i] * i;
 		sumquad += est[i] * i * i;
 	}
@@ -64,7 +65,7 @@ void justanalyze(estogram est, data* d, int n) {
 
 int emax(estogram est) {
 	int i;
-	for(i = 99; est[i] == 0; --i);
+	for(i = MAX_VAL - 1; est[i] == 0; --i);
 	return i;
 }
 
@@ -75,7 +76,7 @@ int emin(estogram est) {
 }
 
 void sum_est(estogram A, estogram B) {
-	for (int i = 0; i < 100; ++i)
+	for (int i = 0; i < MAX_VAL; ++i)
 		A[i] += B[i];
 }
 
@@ -100,7 +101,7 @@ int main(void)
 
 	for (i = 0; i < R*C; i++)
 		for (j = 0; j < A; j++)
-			++matriz[i][rand() % 100];
+			++matriz[i][rand() % MAX_VAL];
 
 
 	data *data_cidades = (data *) malloc(R * C * sizeof(data));
@@ -109,11 +110,11 @@ int main(void)
 
 	int *maior_cidades = (int *) malloc(R * C * sizeof(int));
 	int *maior_regiao = (int *) malloc(R * sizeof(int));
-	int maior_brasil = -1;
+	int maior_brasil;
 
 	int *menor_cidades = (int *) malloc(R * C * sizeof(int));
 	int *menor_regiao = (int *) malloc(R * sizeof(int));
-	int menor_brasil = 100;
+	int menor_brasil ;
 
 	for(int i=0; i<R; i++) {
 		for(int j=0; j<C; j++) {
