@@ -7,7 +7,7 @@
 #define swap(i, j) aux = i, i = j, j = aux;
 #define MAX_VAL 101
 
-typedef int estogram[100];
+typedef int estogram[MAX_VAL];
 
 typedef struct data {
 	double med, dp, median;
