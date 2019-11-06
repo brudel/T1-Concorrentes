@@ -12,42 +12,8 @@ typedef struct data {
 	double med, dp, median;
 } data;
 
-int A;
-
-int max(int* vector, int n) {
-	int m = vector[0];
-	for(int i=1;i<n;i++) {
-		if(vector[i] > m) {
-			m = vector[i];
-		}
-	}
-	return m;
-}
-
-int min(int* vector, int n) {
-	int m = vector[0];
-	for(int i=1;i<n;i++) {
-		if(vector[i] < m) {
-			m = vector[i];
-		}
-	}
-	return m;
-}
-
-int emax(estogram est) {
-	int i;
-	for(i = 99; est[i] != 0; --i);
-	return i;
-}
-
-int emin(estogram est) {
-	int i;
-	for(i = 0; est[i] != 0; ++i);
-	return i;
-}
-
-void analyzecid(estogram cid, estogram reg, data* d, int n) {
-	int sum = 0, i, sumquad = 0, num = 0;
+void analyzepart(estogram cid, estogram reg, data* d, int n) {
+	long int sum = 0, i, sumquad = 0, num = 0;
 
 	for (i = 0; num < (n + 1) / 2; ++i) {
 		num += cid[i];
@@ -68,8 +34,44 @@ void analyzecid(estogram cid, estogram reg, data* d, int n) {
 		reg[i] += cid[i];
 	}
 
-	d->med = (float) sum / n;
-	d->dp = sqrt((sumquad  -  (float) sum * sum / n)    /    (n - 1));
+	d->med = (double) sum / n;
+	d->dp = sqrt((sumquad  -  (double) sum * sum / n)    /    (n - 1));
+}
+
+void justanalyze(estogram est, data* d, int n) {
+	long int sum = 0, i, sumquad = 0, num = 0;
+
+	for (i = 0; num < (n + 1) / 2; ++i) {
+		num += est[i];
+		sum += est[i] * i;
+		sumquad += est[i] * i * i;
+	}
+
+	d->median = i - 1;
+	if (n % 2 == 0 && num == n / 2) {
+		while (est[++i] == 0);
+		d->median = (i + d->median) / 2;
+	}
+
+	for (; i < 100; ++i) {
+		sum += est[i] * i;
+		sumquad += est[i] * i * i;
+	}
+
+	d->med = (double) sum / n;
+	d->dp = sqrt((sumquad  -  (double) sum * sum / n)    /    (n - 1));
+}
+
+int emax(estogram est) {
+	int i;
+	for(i = 99; est[i] == 0; --i);
+	return i;
+}
+
+int emin(estogram est) {
+	int i;
+	for(i = 0; est[i] == 0; ++i);
+	return i;
 }
 
 void sum_est(estogram A, estogram B) {
@@ -79,24 +81,16 @@ void sum_est(estogram A, estogram B) {
 
 int main(void)
 {
-	/// Read param from file
 	int lines[4], i = 0, j;
 	double tempoExec;
 	double nclocksMedia, nclocksSortingC, nclocksSortingR, nclocksSortingP;
-
-	// FILE *fp = fopen("entrada.txt", "r");
-	// if(fp == NULL)
-	// {
-	//	 printf("Unable to open file!");
-	//	 exit(1);
-	// }
 
 	while(scanf(" %d", &lines[i]) != EOF)
 		i++;
 
 	int R = lines[0];
 	int C = lines[1];
-	A = lines[2];
+	int A = lines[2];
 	int seed = lines[3];
 
 	/// Generates the arrays
@@ -124,12 +118,17 @@ int main(void)
 
 	for(int i=0; i<R; i++) {
 		for(int j=0; j<C; j++) {
-			analyzecid(matriz[i*C + j], regioes[i], data_cidades + i*C + j, A);
+			analyzepart(matriz[i*C + j], regioes[i], data_cidades + i*C + j, A);
+			maior_cidades[i*C + j] = emax(matriz[i*C + j]);
+			menor_cidades[i*C + j] = emin(matriz[i*C + j]);
 		}
-		//menor_cidades[i*C + j] = analyze(regioes[i]);
-		//sum_est(*Brasil, regioes[i]);
+		analyzepart(regioes[i], *Brasil, data_regiao + i, C * A);
+		maior_regiao[i] = emax(regioes[i]);
+		menor_regiao[i] = emin(regioes[i]);
 	}
-	//mediana_brasil = analyze(*Brasil);
+	justanalyze(*Brasil, &data_brasil, R * C * A);
+	maior_brasil = emax(*Brasil);
+	menor_brasil = emin(*Brasil);
 
 	/// Printing results
 
