@@ -120,20 +120,35 @@ int main(void)
 	int *menor_cidades = (int *) malloc(R * C * sizeof(int));
 	int *menor_regiao = (int *) malloc(R * sizeof(int));
 	int menor_brasil ;
-
+	
+	int melhor_cidade, melhor_cidade_reg, melhor_regiao;
+	double maiorMediaCidade = -1, maiorMediaRegiao = -1;
 	for(int i=0; i<R; i++) {
 		for(int j=0; j<C; j++) {
 			analyzepart(matriz[i*C + j], regioes[i], data_cidades + i*C + j, A);
 			maior_cidades[i*C + j] = emax(matriz[i*C + j]);
 			menor_cidades[i*C + j] = emin(matriz[i*C + j]);
+
+			if(data_cidades[i*C + j].med > maiorMediaCidade){
+				maiorMediaCidade = data_cidades[i*C + j].med;
+				melhor_cidade = j;
+				melhor_cidade_reg = i;
+			}
 		}
 		analyzepart(regioes[i], *Brasil, data_regiao + i, C * A);
 		maior_regiao[i] = emax(regioes[i]);
 		menor_regiao[i] = emin(regioes[i]);
+
+		if(data_regiao[i].med > maiorMediaRegiao){
+			maiorMediaRegiao = data_regiao[i].med;
+			melhor_regiao = i;
+		}
 	}
+
 	justanalyze(*Brasil, &data_brasil, R * C * A);
 	maior_brasil = emax(*Brasil);
 	menor_brasil = emin(*Brasil);
+
 
 	tempoExec = (clock() - tempoExec) / CLOCKS_PER_SEC;
 
@@ -164,10 +179,10 @@ int main(void)
 
 	printf("\n");
 
-	//printf("Melhor regiao: Regiao %d\n", melhor_regiao);
-	//printf("Melhor cidade: Regiao %d, Cidade %d\n", melhor_cidade_reg, melhor_cidade);
+	printf("Melhor regiao: Regiao %d\n", melhor_regiao);
+	printf("Melhor cidade: Regiao %d, Cidade %d\n", melhor_cidade_reg, melhor_cidade);
 
-	printf("Tempo de resposta sem considerar E/S, em segundos: %.3lfs\n", tempoExec);
+	printf("\nTempo de resposta sem considerar E/S, em segundos: %.3lfs\n", tempoExec);
 
 	return(0);
 
