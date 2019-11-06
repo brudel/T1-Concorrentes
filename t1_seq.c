@@ -90,7 +90,7 @@ int main(void)
     int *matriz = (int *)malloc(R*C*A*sizeof(int));
     for (i = 0; i < R*C*A; i++)
     {
-        matriz[i] = rand() % 100;
+        matriz[i] = rand() % 101;
     }
 
     // Print array in matrix's representation    
