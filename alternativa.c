@@ -22,7 +22,7 @@ void analyzepart(estogram cid, estogram reg, data* d, int n) {
 		reg[i] += cid[i];
 	}
 
-	d->median = i - 1;
+	d->median = --i;
 	if (n % 2 == 0 && num == n / 2) {
 		while (cid[++i] == 0);
 		d->median = (i + d->median) / 2;
