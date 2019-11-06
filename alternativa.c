@@ -47,7 +47,7 @@ void justanalyze(estogram est, data* d, int n) {
 		sumquad += est[i] * i * i;
 	}
 
-	d->median = i - 1;
+	d->median = --i;
 	if (n % 2 == 0 && num == n / 2) {
 		while (est[++i] == 0);
 		d->median = (i + d->median) / 2;
@@ -82,8 +82,7 @@ void sum_est(estogram A, estogram B) {
 int main(void)
 {
 	int lines[4], i = 0, j;
-	double tempoExec;
-	double nclocksMedia, nclocksSortingC, nclocksSortingR, nclocksSortingP;
+	double tempoExec = clock();
 
 	while(scanf(" %d", &lines[i]) != EOF)
 		i++;
@@ -130,6 +129,8 @@ int main(void)
 	maior_brasil = emax(*Brasil);
 	menor_brasil = emin(*Brasil);
 
+	tempoExec = (clock() - tempoExec) / CLOCKS_PER_SEC;
+
 	/// Printing results
 
 	// Metrics for cities
@@ -161,12 +162,6 @@ int main(void)
 	//printf("Melhor cidade: Regiao %d, Cidade %d\n", melhor_cidade_reg, melhor_cidade);
 
 	printf("Tempo de resposta sem considerar E/S, em segundos: %.3lfs\n", tempoExec);
-	double tMedia, tC, tR, tP;
-	tMedia = nclocksMedia/CLOCKS_PER_SEC;
-	tC = nclocksSortingC/CLOCKS_PER_SEC;
-	tR = nclocksSortingR/CLOCKS_PER_SEC;
-	tP = nclocksSortingP/CLOCKS_PER_SEC;
-	printf("tMedia=%.3lf\n tCidades=%.3lf\n tRegioes=%.3lf\n tPais=%.3lf\n", tMedia, tC, tR, tP);
 
 	return(0);
 
