@@ -7,6 +7,8 @@
 
 #define swap(i, j) aux = i, i = j, j = aux;
 
+#define MAX_VAL 101
+
 int max(int* vector, int n){
 	int m = vector[0];
 	for(int i=1;i<n;i++){
@@ -167,7 +169,7 @@ int main(void)
 	int *matriz = (int *)malloc(R*C*A*sizeof(int));
 	for (i = 0; i < R*C*A; i++)
 	{
-		matriz[i] = rand() % 100;
+		matriz[i] = rand() % MAX_VAL;
 	}
 
 	// Print array in matrix's representation	
