@@ -22,17 +22,19 @@ void analyzepart(estogram cid, estogram reg, data* d, int n) {
 		sumquad += cid[i] * i * i;
 		reg[i] += cid[i];
 	}
-
-	d->median = --i;
-	if (n % 2 == 0 && num == n / 2) {
-		while (cid[++i] == 0);
-		d->median = (i + d->median) / 2;
-	}
-
+	d->median = i-1;
 	for (; i < MAX_VAL; ++i) {
 		sum += cid[i] * i;
 		sumquad += cid[i] * i * i;
 		reg[i] += cid[i];
+	}
+
+	if (n % 2 == 0 && num == n / 2) {
+		int j = d->median+1;
+		while (cid[j] == 0){
+			j++;
+		}
+		d->median = (j + d->median) / 2;
 	}
 
 	d->med = (double) sum / n;
@@ -48,15 +50,18 @@ void justanalyze(estogram est, data* d, int n) {
 		sumquad += est[i] * i * i;
 	}
 
-	d->median = --i;
-	if (n % 2 == 0 && num == n / 2) {
-		while (est[++i] == 0);
-		d->median = (i + d->median) / 2;
-	}
-
+	d->median = i-1;
 	for (; i < MAX_VAL; ++i) {
 		sum += est[i] * i;
 		sumquad += est[i] * i * i;
+	}
+
+	if (n % 2 == 0 && num == n / 2) {
+		int j = d->median+1;
+		while (est[j] == 0){
+			j++;
+		}
+		d->median = (j + d->median) / 2;
 	}
 
 	d->med = (double) sum / n;
