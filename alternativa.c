@@ -100,14 +100,27 @@ int main(void)
 
 	/// Generates the arrays
 	srand(seed);
+	int *matrizNotas = (int *)malloc(R*C*A*sizeof(int));
 	estogram *matriz = calloc(1, R * C * sizeof(estogram)),
 	*regioes = calloc(1, R * sizeof(estogram)),
 	*Brasil = calloc(1, sizeof(estogram));
 
-	for (i = 0; i < R*C; i++)
-		for (j = 0; j < A; j++)
-			++matriz[i][rand() % MAX_VAL];
+	// Gera notas
+	for(i=0; i<R; i++){
+		for(j=0; j<C; j++){
+			for(int k=0; k<A; k++){
+				matrizNotas[i*C*A + j*A + k] = rand()%MAX_VAL;
+			}
+		}
+	}
 
+	tempoExec = clock();
+	// Controi histograma de notas de cada cidade
+	for (i = 0; i < R*C; i++){
+		for (j = 0; j < A; j++){
+			matriz[i][matrizNotas[i*A + j]]++;
+		}
+	}
 
 	data *data_cidades = (data *) malloc(R * C * sizeof(data));
 	data *data_regiao = (data *) malloc(R * sizeof(data));
