@@ -1,3 +1,6 @@
+// COMO COMPILAR: gcc alternativapar.c -o main -lm -fopenmp
+// COMO EXECUTAR: ./main < entrada.txt
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <math.h>
@@ -6,7 +9,7 @@
 
 #define swap(i, j) aux = i, i = j, j = aux;
 #define MAX_VAL 101
-#define NTHREADS 8
+#define NTHREADS 4
 
 typedef int estogram[MAX_VAL];
 
@@ -116,14 +119,17 @@ int main(void)
 	}
 
 	tempoExec = clock();
-	// Controi histograma de notas de cada cidade
 
-	#pragma omp parallel for num_threads(NTHREADS)
-	for (i = 0; i < R*C; i++){
-		for (j = 0; j < A; j++){
-			matriz[i][matrizNotas[i*A + j]]++;
-		}
-	}
+	// Controi histograma de notas de cada cidade
+	#pragma omp parallel num_threads(NTHREADS)
+    {
+        #pragma omp for private(i, j)
+        for (i = 0; i < R*C; i++){
+            for (j = 0; j < A; j++){
+                matriz[i][matrizNotas[i*A + j]]++;
+            }
+        }
+    }
 
 	data *data_cidades = (data *) malloc(R * C * sizeof(data));
 	data *data_regiao = (data *) malloc(R * sizeof(data));
@@ -139,14 +145,16 @@ int main(void)
 	
 	int melhor_cidade, melhor_cidade_reg, melhor_regiao;
 	double maiorMediaCidade = -1, maiorMediaRegiao = -1;
-
-	#pragma omp parallel for num_threads(NTHREADS) shared(matriz, regioes, Brasil, data_cidades, data_regiao, maiorMediaCidade, maiorMediaRegiao, melhor_cidade, melhor_cidade_reg, melhor_regiao)
-	{
+ 
+	#pragma omp parallel num_threads(NTHREADS) shared(matriz, regioes, Brasil, data_cidades, data_regiao, maiorMediaCidade, maiorMediaRegiao, melhor_cidade, melhor_cidade_reg, melhor_regiao)
+	{        
 		double maiorMediaCidadeLoc = -1, maiorMediaRegiaoLoc = 1;
 		int melhor_cidade_loc = 0, melhor_cidade_reg_loc = 0, melhor_regiao_loc = 0;
-		for(int i=0; i<R; i++) {
-			for(int j=0; j<C; j++) {
-				analyzepart(matriz[i*C + j], regioes[i], data_cidades + i*C + j, A);
+
+        #pragma omp for private(i, j)
+		for(i=0; i<R; i++) {
+			for(j=0; j<C; j++) {
+				analyzepart(matriz[i*C + j], regioes[i], &data_cidades[i*C + j], A);
 				maior_cidades[i*C + j] = emax(matriz[i*C + j]);
 				menor_cidades[i*C + j] = emin(matriz[i*C + j]);
 				
@@ -166,7 +174,11 @@ int main(void)
 			}
 		}
 
-		#pragma omp critical CHECK_REGIAO
+        // double tt = omp_get_wtick();
+        int tn = omp_get_thread_num();
+        printf("thread %d i=%d\n", tn, i);
+
+		#pragma omp critical (CHECK_REGIAO)
 		{
 			if(maiorMediaRegiaoLoc > maiorMediaRegiao){
 				maiorMediaRegiao = maiorMediaRegiaoLoc;
@@ -174,7 +186,7 @@ int main(void)
 			}
 		}
 
-		#pragma omp critical CHECK_CIDADE
+		#pragma omp critical (CHECK_CIDADE)
 		{
 			if(maiorMediaCidadeLoc > maiorMediaCidade){
 				maiorMediaCidade = maiorMediaCidadeLoc;
@@ -188,30 +200,29 @@ int main(void)
 	maior_brasil = emax(*Brasil);
 	menor_brasil = emin(*Brasil);
 
-
-	tempoExec = (clock() - tempoExec) / CLOCKS_PER_SEC;
+    tempoExec = (clock() - tempoExec) / CLOCKS_PER_SEC;
 
 	/// Printing results
 
 	// Metrics for cities
 	int k;
-	for (i = 0; i < R; i++)
-	{
-		for(j = 0; j < C; j++)
-		{
-			k = i*C+j;
-			printf("Reg %d - Cid %d: menor: %d, maior: %d, mediana: %.2f, media: %.2f e DP: %.2f\n", i, j, menor_cidades[k], maior_cidades[k], data_cidades[k].median, data_cidades[k].med, data_cidades[k].dp);
-		}
-		printf("\n");
-	}
+	// for (i = 0; i < R; i++)
+	// {
+	// 	for(j = 0; j < C; j++)
+	// 	{
+	// 		k = i*C+j;
+	// 		printf("Reg %d - Cid %d: menor: %d, maior: %d, mediana: %.2f, media: %.2f e DP: %.2f\n", i, j, menor_cidades[k], maior_cidades[k], data_cidades[k].median, data_cidades[k].med, data_cidades[k].dp);
+	// 	}
+	// 	printf("\n");
+	// }
 
-	// Metrics for regions
-	for (i = 0; i < R; i++)
-	{
-		printf("Reg %d: menor: %d, maior: %d, mediana: %.2f, media: %.2f e DP: %.2f\n", i, menor_regiao[i], maior_regiao[i], data_regiao[i].median, data_regiao[i].med, data_regiao[i].dp);
-	}
+	// // Metrics for regions
+	// for (i = 0; i < R; i++)
+	// {
+	// 	printf("Reg %d: menor: %d, maior: %d, mediana: %.2f, media: %.2f e DP: %.2f\n", i, menor_regiao[i], maior_regiao[i], data_regiao[i].median, data_regiao[i].med, data_regiao[i].dp);
+	// }
 
-	printf("\n");
+	// printf("\n");
 
 	// Metrics for the country
 	printf("Brasil: menor: %d, maior: %d, mediana: %.2f, media: %.2f e DP: %.2f\n", menor_brasil, maior_brasil, data_brasil.median, data_brasil.med, data_brasil.dp);
