@@ -175,56 +175,112 @@ int main(void)
 	int melhor_cidade, melhor_cidade_reg, melhor_regiao;
 	double maiorMediaCidade = -1, maiorMediaRegiao = -1;
 	
+	if(R >= NTHREADS){
+		#pragma omp parallel num_threads(NTHREADS) shared(matriz, regioes, Brasil, data_cidades, data_regiao, maiorMediaCidade, maiorMediaRegiao, melhor_cidade, melhor_cidade_reg, melhor_regiao)
+		{        
+			double maiorMediaCidadeLoc = -1, maiorMediaRegiaoLoc = 1;
+			int melhor_cidade_loc = 0, melhor_cidade_reg_loc = 0, melhor_regiao_loc = 0;
 
-	#pragma omp parallel num_threads(NTHREADS) shared(matriz, regioes, Brasil, data_cidades, data_regiao, maiorMediaCidade, maiorMediaRegiao, melhor_cidade, melhor_cidade_reg, melhor_regiao)
-	{        
-		double maiorMediaCidadeLoc = -1, maiorMediaRegiaoLoc = 1;
-		int melhor_cidade_loc = 0, melhor_cidade_reg_loc = 0, melhor_regiao_loc = 0;
+			#pragma omp for private(i, j)
+			for(i=0; i<R; i++) {
+				for(j=0; j<C; j++) {
+					analyzepart(matriz[i*C + j], regioes[i], &data_cidades[i*C + j], A);
+					maior_cidades[i*C + j] = emax(matriz[i*C + j]);
+					menor_cidades[i*C + j] = emin(matriz[i*C + j]);
+					
+					if(data_cidades[i*C + j].med > maiorMediaCidadeLoc){
+						maiorMediaCidadeLoc = data_cidades[i*C + j].med;
+						melhor_cidade_loc = j;
+						melhor_cidade_reg_loc = i;
+					}
+				}
+				analyzepart(regioes[i], *Brasil, data_regiao + i, C * A);
+				maior_regiao[i] = emax(regioes[i]);
+				menor_regiao[i] = emin(regioes[i]);
 
-		#pragma omp for private(i, j)
-		for(i=0; i<R; i++) {
-			for(j=0; j<C; j++) {
-				analyzepart(matriz[i*C + j], regioes[i], &data_cidades[i*C + j], A);
-				maior_cidades[i*C + j] = emax(matriz[i*C + j]);
-				menor_cidades[i*C + j] = emin(matriz[i*C + j]);
-				
-				if(data_cidades[i*C + j].med > maiorMediaCidadeLoc){
-					maiorMediaCidadeLoc = data_cidades[i*C + j].med;
-					melhor_cidade_loc = j;
-					melhor_cidade_reg_loc = i;
+				if(data_regiao[i].med > maiorMediaRegiaoLoc){
+					maiorMediaRegiaoLoc = data_regiao[i].med;
+					melhor_regiao_loc = i;
 				}
 			}
+
+			// double tt = omp_get_wtick();
+			int tn = omp_get_thread_num();
+			printf("thread %d i=%d\n", tn, i);
+
+			#pragma omp critical (CHECK_REGIAO)
+			{
+				if(maiorMediaRegiaoLoc > maiorMediaRegiao){
+					maiorMediaRegiao = maiorMediaRegiaoLoc;
+					melhor_regiao = melhor_regiao_loc;
+				}
+			}
+
+			#pragma omp critical (CHECK_CIDADE)
+			{
+				if(maiorMediaCidadeLoc > maiorMediaCidade){
+					maiorMediaCidade = maiorMediaCidadeLoc;
+					melhor_cidade = melhor_cidade_loc;
+					melhor_cidade_reg = melhor_cidade_reg_loc;
+				}
+			}
+		}
+	} else {
+		estogram *regioes_loc = (estogram *)calloc(NTHREADS, sizeof(estogram));
+
+		for(i=0; i<R; i++) {
+			#pragma omp parallel num_threads(NTHREADS) shared(matriz, regioes, Brasil, data_cidades, data_regiao, maiorMediaCidade, maiorMediaRegiao, melhor_cidade, melhor_cidade_reg, melhor_regiao)
+			{
+				double maiorMediaCidadeLoc = -1;
+				int melhor_cidade_loc = 0, melhor_cidade_reg_loc = 0;
+
+				int my_rank = omp_get_thread_num();
+
+				#pragma omp for firstprivate(i) private(j)
+				for(j=0; j<C; j++) {
+					analyzepart(matriz[i*C + j], regioes_loc[my_rank], &data_cidades[i*C + j], A);
+					maior_cidades[i*C + j] = emax(matriz[i*C + j]);
+					menor_cidades[i*C + j] = emin(matriz[i*C + j]);
+					
+					if(data_cidades[i*C + j].med > maiorMediaCidadeLoc){
+						maiorMediaCidadeLoc = data_cidades[i*C + j].med;
+						melhor_cidade_loc = j;
+						melhor_cidade_reg_loc = i;
+					}
+				}
+
+				#pragma omp critical (CHECK_CIDADE)
+				{
+					if(maiorMediaCidadeLoc > maiorMediaCidade){
+						maiorMediaCidade = maiorMediaCidadeLoc;
+						melhor_cidade = melhor_cidade_loc;
+						melhor_cidade_reg = melhor_cidade_reg_loc;
+					}
+				}
+			}
+
+			for(int k=0; k<NTHREADS; k++){
+				for(int l=0; l<MAX_VAL; l++){
+					regioes[i][l] += regioes_loc[k][l];
+					regioes_loc[k][l] = 0;
+				}
+			}
+
 			analyzepart(regioes[i], *Brasil, data_regiao + i, C * A);
 			maior_regiao[i] = emax(regioes[i]);
 			menor_regiao[i] = emin(regioes[i]);
 
-			if(data_regiao[i].med > maiorMediaRegiaoLoc){
-				maiorMediaRegiaoLoc = data_regiao[i].med;
-				melhor_regiao_loc = i;
+			if(data_regiao[i].med > maiorMediaRegiao){
+				maiorMediaRegiao = data_regiao[i].med;
+				melhor_regiao = i;
 			}
 		}
 
 		// double tt = omp_get_wtick();
 		int tn = omp_get_thread_num();
 		printf("thread %d i=%d\n", tn, i);
-
-		#pragma omp critical (CHECK_REGIAO)
-		{
-			if(maiorMediaRegiaoLoc > maiorMediaRegiao){
-				maiorMediaRegiao = maiorMediaRegiaoLoc;
-				melhor_regiao = melhor_regiao_loc;
-			}
-		}
-
-		#pragma omp critical (CHECK_CIDADE)
-		{
-			if(maiorMediaCidadeLoc > maiorMediaCidade){
-				maiorMediaCidade = maiorMediaCidadeLoc;
-				melhor_cidade = melhor_cidade_loc;
-				melhor_cidade_reg = melhor_cidade_reg_loc;
-			}
-		}
 	}
+	
 
 	justanalyze(*Brasil, &data_brasil, R * C * A);
 	maior_brasil = emax(*Brasil);
