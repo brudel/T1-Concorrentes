@@ -114,22 +114,51 @@ int main(void)
 		for(j=0; j<C; j++){
 			for(int k=0; k<A; k++){
 				matrizNotas[i*C*A + j*A + k] = rand()%MAX_VAL;
+				//printf("%d ", matrizNotas[i*C*A + j*A + k]);
 			}
+			//printf("\n");
 		}
+		//printf("\n");
 	}
 
 	tempoExec = omp_get_wtime();
 
 	// Controi histograma de notas de cada cidade
-	#pragma omp parallel num_threads(NTHREADS)
-    {
-        #pragma omp for private(i, j)
-        for (i = 0; i < R*C; i++){
-            for (j = 0; j < A; j++){
-                matriz[i][matrizNotas[i*A + j]]++;
-            }
-        }
-    }
+
+	if(R*C >= NTHREADS || 1){
+		#pragma omp parallel num_threads(NTHREADS)
+		{
+			#pragma omp for private(i, j)
+			for (i = 0; i < R*C; i++){
+				for (j = 0; j < A; j++){
+					matriz[i][matrizNotas[i*A + j]]++;
+				}
+			}
+		}
+	} else {
+		estogram *matriz_loc = (estogram *)calloc(NTHREADS, sizeof(estogram));	
+		for (i = 0; i < R*C; i++){
+			#pragma omp parallel num_threads(NTHREADS) firstprivate(i) shared(matriz_loc)
+			{				
+				int my_rank = omp_get_thread_num();
+
+				#pragma omp for private(j)
+				for (j = 0; j < A; j++){
+					//matriz[i][matrizNotas[i*A + j]]++;
+					matriz_loc[my_rank][matrizNotas[i*A + j]]++;
+				}
+
+			}
+
+			for(int k=0; k<NTHREADS; k++){
+				for(int l=0; l<MAX_VAL; l++){
+					//printf("thread %d nota %d valor %d\n", k, l, matriz_loc[k][l]);
+					matriz[i][l] += matriz_loc[k][l];
+					matriz_loc[k][l] = 0;
+				}
+			}
+		}
+	}
 
 	data *data_cidades = (data *) malloc(R * C * sizeof(data));
 	data *data_regiao = (data *) malloc(R * sizeof(data));
@@ -145,13 +174,14 @@ int main(void)
 	
 	int melhor_cidade, melhor_cidade_reg, melhor_regiao;
 	double maiorMediaCidade = -1, maiorMediaRegiao = -1;
- 
+	
+
 	#pragma omp parallel num_threads(NTHREADS) shared(matriz, regioes, Brasil, data_cidades, data_regiao, maiorMediaCidade, maiorMediaRegiao, melhor_cidade, melhor_cidade_reg, melhor_regiao)
 	{        
 		double maiorMediaCidadeLoc = -1, maiorMediaRegiaoLoc = 1;
 		int melhor_cidade_loc = 0, melhor_cidade_reg_loc = 0, melhor_regiao_loc = 0;
 
-        #pragma omp for private(i, j)
+		#pragma omp for private(i, j)
 		for(i=0; i<R; i++) {
 			for(j=0; j<C; j++) {
 				analyzepart(matriz[i*C + j], regioes[i], &data_cidades[i*C + j], A);
@@ -174,9 +204,9 @@ int main(void)
 			}
 		}
 
-        // double tt = omp_get_wtick();
-        int tn = omp_get_thread_num();
-        printf("thread %d i=%d\n", tn, i);
+		// double tt = omp_get_wtick();
+		int tn = omp_get_thread_num();
+		printf("thread %d i=%d\n", tn, i);
 
 		#pragma omp critical (CHECK_REGIAO)
 		{
