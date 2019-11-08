@@ -92,7 +92,7 @@ void sum_est(estogram A, estogram B) {
 int main(void)
 {
 	int lines[4], i = 0, j;
-	double tempoExec = clock();
+	double tempoExec;
 
 	while(scanf(" %d", &lines[i]) != EOF)
 		i++;
@@ -118,7 +118,7 @@ int main(void)
 		}
 	}
 
-	tempoExec = clock();
+	tempoExec = omp_get_wtime();
 
 	// Controi histograma de notas de cada cidade
 	#pragma omp parallel num_threads(NTHREADS)
@@ -200,7 +200,7 @@ int main(void)
 	maior_brasil = emax(*Brasil);
 	menor_brasil = emin(*Brasil);
 
-    tempoExec = (clock() - tempoExec) / CLOCKS_PER_SEC;
+    tempoExec = omp_get_wtime() - tempoExec;
 
 	/// Printing results
 
