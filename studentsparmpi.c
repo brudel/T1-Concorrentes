@@ -136,16 +136,16 @@ int main(int argc, char **argv)
         int C = lines[1];
         int A = lines[2];
         int seed = lines[3];
-        int sizes[npes][3];
+        int sizes[npes][3]; //# Tirar redundância 
 
         srand(seed);
 
-        // Gera notas
-        int *matrizNotas = (int *)malloc(R*C*A*sizeof(int));
-        estogram *cidades = calloc(1, R * C * sizeof(estogram)),
-        *regioes = calloc(1, R * sizeof(estogram)),
-        *Brasil = calloc(1, sizeof(estogram));
+        int *matrizNotas = (int*) malloc(R * C * A * sizeof(int));
+        estogram *cidades = calloc(R * C, sizeof(estogram)),
+        *regioes = calloc(R, sizeof(estogram)),
+        *Brasil = calloc(sizeof(estogram));
 
+        // Gera matriz de notas
         for(i=0; i<R; i++){
             for(j=0; j<C; j++){
                 for(int k=0; k<A; k++){
@@ -167,7 +167,8 @@ int main(int argc, char **argv)
         if(resto > 0)
             regAtual = nRegProc + 1;
 
-        for(int i=1; i<npes; i++){
+        // Distribui trabalho
+        for(int i=1; i<npes; i++){ //# Pode ser quebrado em dois fors antes e dps do tamanho do resto
             sizes[i][1] = C;
             sizes[i][2] = A;
             if(i < resto){
@@ -190,13 +191,6 @@ int main(int argc, char **argv)
                 cidades[i][matrizNotas[i*A + j]]++;
             }
         }
-
-        // for(int i=0; i<nRegProc*C; i++){
-        //     for(int j=0; j<MAX_VAL; j++){
-        //         printf("%d ", cidades[i][j]);
-        //     }
-        //     printf("\n");
-        // }
 
         // Struct de metricas (media, dp e mediana)
         double *dados_cidades = (double *) malloc(R * C * 3 * sizeof(double));
