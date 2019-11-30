@@ -120,23 +120,30 @@ int main(int argc, char **argv)
 	int R, C, A;
 	int *matrizNotas;
 	estogram *cidades, *regioes, *Brasil;
+    estogram auxBrasil;
 
 	// Resultados
 	double *dados_cidades, *dados_regiao, *dados_brasil;
 	int *maior_cidades, *menor_cidades, *maior_regiao, *menor_regiao;
-	int menor_brasil, maior_brasil;
+	int menor_brasil, maior_brasil;    
+
 	int melhor_cidade[2], melhor_regiao;
 	double maiorMediaCidade = -1, maiorMediaRegiao = -1;
+    // Auxiliares
+    int melhores_cidades[npes * 2], melhores_regioes[npes];
+    double maioresMediasCidade[npes], maioresMediasRegiao[npes];
 
 	// Outros
 	int i, j, k;
-	//double tempoExec;
+	double tempoExec;
 
 	FILE *arq;
 	char name[9] = "arq0.txt";
 	name[3] += myrank;
 
 	arq = fopen(name, "w+");
+
+	printf("meu rank = %d\n", myrank);
 
 	if(myrank == 0) {
 		int seed, sizes[npes][3]/*# Tirar redundância #*/, resto, regAtual;
@@ -158,6 +165,9 @@ int main(int argc, char **argv)
 			fprintf(arq, "\n");
 		}
 
+		// Inicia contagem do tempo
+		tempoExec = MPI_Wtime();
+
 		// Metricas (media, dp e mediana)
 		dados_cidades = malloc(allR * C * 3 * sizeof(double));
 		dados_regiao = malloc(allR * 3 * sizeof(double));
@@ -167,9 +177,7 @@ int main(int argc, char **argv)
 		maior_cidades = malloc(allR * C * sizeof(int));
 		menor_cidades = malloc(allR * C * sizeof(int));
 		maior_regiao = malloc(allR * sizeof(int));
-		menor_regiao = malloc(allR * sizeof(int));		
-
-		// tempoExec = MPI_Wtime
+		menor_regiao = malloc(allR * sizeof(int));
 
 		nRegProc = allR/npes;
 		resto = allR%npes;
@@ -264,10 +272,9 @@ int main(int argc, char **argv)
 	}
 
 	if(myrank == 0) {
-		int auxBrasil[npes*MAX_VAL];
 		int nRegs;
 		int regAtual = R;
-		int resto = allR%npes; 
+		int resto = allR%npes;
 		MPI_Request requests[npes][6];
 		
 		for(i=1; i<npes; i++){
@@ -286,36 +293,60 @@ int main(int argc, char **argv)
 			MPI_Irecv(&maior_regiao[regAtual], nRegs, MPI_INT, i, 5, MPI_COMM_WORLD, &requests[i][5]);
 
 			regAtual += nRegs;
-		}		
+		}
 
-		MPI_Status status[npes][6];
+        MPI_Status status[npes][6];
 		for(i=1; i<npes; i++){
 			for(j=0; j<6; j++){
 				MPI_Wait(&(requests[i][j]), &(status[i][j]));
 			}
 		}
 
-		MPI_Gather(*Brasil, MAX_VAL, MPI_INT, auxBrasil, MAX_VAL, MPI_INT, 0, MPI_COMM_WORLD);
+	} else {
+		int auxBrasil[MAX_VAL];
 
-		int melhores_cidades[npes * 2], melhores_regioes[npes];
-		double maioresMediasCidade[npes], maioresMediasRegiao[npes];
+		MPI_Request requests[6];
+		MPI_Isend(dados_cidades, R * C * 3, MPI_DOUBLE, 0, 0, MPI_COMM_WORLD, &requests[0]);
+		MPI_Isend(dados_regiao, R * 3, MPI_DOUBLE, 0, 1, MPI_COMM_WORLD, &requests[1]);
 
-		MPI_Gather(melhor_cidade, 2, MPI_INT, melhores_cidades, 2, MPI_INT, 0, MPI_COMM_WORLD);
-		MPI_Gather(&melhor_regiao, 1, MPI_INT, melhores_regioes, 1, MPI_INT, 0, MPI_COMM_WORLD);
-		MPI_Gather(&maiorMediaCidade, 1, MPI_DOUBLE, maioresMediasCidade, 1, MPI_DOUBLE, 0, MPI_COMM_WORLD);
-		MPI_Gather(&maiorMediaRegiao, 1, MPI_DOUBLE, maioresMediasRegiao, 1, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+		MPI_Isend(menor_cidades, R*C, MPI_INT, 0, 2, MPI_COMM_WORLD, &requests[2]);
+		MPI_Isend(maior_cidades, R*C, MPI_INT, 0, 3, MPI_COMM_WORLD, &requests[3]);
+		MPI_Isend(menor_regiao, R, MPI_INT, 0, 4, MPI_COMM_WORLD, &requests[4]);
+		MPI_Isend(maior_regiao, R, MPI_INT, 0, 5, MPI_COMM_WORLD, &requests[5]);
+	}
 
-		for(i=1; i<npes; i++){
-			for(j=0; j<MAX_VAL; j++){
-				(*Brasil)[j] += auxBrasil[i*MAX_VAL + j];
-			}
+    MPI_Reduce(*Brasil, auxBrasil, MAX_VAL, MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD);
+
+    MPI_Gather(melhor_cidade, 2, MPI_INT, melhores_cidades, 2, MPI_INT, 0, MPI_COMM_WORLD);
+    MPI_Gather(&melhor_regiao, 1, MPI_INT, melhores_regioes, 1, MPI_INT, 0, MPI_COMM_WORLD);
+    MPI_Gather(&maiorMediaCidade, 1, MPI_DOUBLE, maioresMediasCidade, 1, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+    MPI_Gather(&maiorMediaRegiao, 1, MPI_DOUBLE, maioresMediasRegiao, 1, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+
+	for (i = 0; i < R; i++)
+	{
+		for(j = 0; j < C; j++)
+		{
+			k = i*C+j;
+			fprintf(arq, "Reg %d - Cid %d: menor: %d, maior: %d, mediana: %.2f, media: %.2f e DP: %.2f\n", i, j, menor_cidades[k], maior_cidades[k], dados_cidades[k*3 + MEDIANA], dados_cidades[k*3 + MEDIA], dados_cidades[k*3 + DESVIO_PADRAO]);
 		}
+		fprintf(arq, "\n");
+	}
 
-		// printf("Hist Brasil\n");
-		// for(i=0; i<MAX_VAL; i++){
-		//	 printf("%d ", (*Brasil)[i]);
-		// }
-		// printf("\n");
+	// Métricas das regiões
+	for (i = 0; i < R; i++)
+	{
+		fprintf(arq, "Reg %d: menor: %d, maior: %d, mediana: %.2f, media: %.2f e DP: %.2f\n", i, menor_regiao[i], maior_regiao[i], dados_regiao[i*3 + MEDIANA], dados_regiao[i*3 + MEDIA], dados_regiao[i*3 + DESVIO_PADRAO]);
+	}
+
+	fprintf(arq, "\n");
+
+	if(myrank == 0) {
+        int nRegs;
+		int regAtual = R;
+		int resto = allR%npes;
+        for(int i=0; i<MAX_VAL; i++){
+            (*Brasil)[i] = auxBrasil[i];
+        }
 
 		calcula_metricas_pais(*Brasil, dados_brasil, allR*C*A);
 
@@ -340,80 +371,36 @@ int main(int argc, char **argv)
             regAtual += nRegProc + (i < resto ? 1 : 0);
         }
 
-	} else {
-		int auxBrasil[npes*MAX_VAL];
-
-		MPI_Request requests[6];
-		MPI_Isend(dados_cidades, R * C * 3, MPI_DOUBLE, 0, 0, MPI_COMM_WORLD, &requests[0]);
-		MPI_Isend(dados_regiao, R * 3, MPI_DOUBLE, 0, 1, MPI_COMM_WORLD, &requests[1]);
-
-		MPI_Isend(menor_cidades, R*C, MPI_INT, 0, 2, MPI_COMM_WORLD, &requests[2]);
-		MPI_Isend(maior_cidades, R*C, MPI_INT, 0, 3, MPI_COMM_WORLD, &requests[3]);
-		MPI_Isend(menor_regiao, R, MPI_INT, 0, 4, MPI_COMM_WORLD, &requests[4]);
-		MPI_Isend(maior_regiao, R, MPI_INT, 0, 5, MPI_COMM_WORLD, &requests[5]);
-
-		// MPI_Status status[6];
-
-		// for(j=0; j<6; j++){
-		// 	MPI_Wait(&(requests[j]), &(status[j]));
-		// }
-
-		MPI_Gather(*Brasil, MAX_VAL, MPI_INT, auxBrasil, MAX_VAL, MPI_INT, 0, MPI_COMM_WORLD);
-
-		int melhores_cidades[npes * 2], melhores_regioes[npes];
-		double maioresMediasCidade[npes], maioresMediasRegiao[npes];
-
-		MPI_Gather(melhor_cidade, 2, MPI_INT, melhores_cidades, 2, MPI_INT, 0, MPI_COMM_WORLD);
-		MPI_Gather(&melhor_regiao, 1, MPI_INT, melhores_regioes, 1, MPI_INT, 0, MPI_COMM_WORLD);
-		MPI_Gather(&maiorMediaCidade, 1, MPI_DOUBLE, maioresMediasCidade, 1, MPI_DOUBLE, 0, MPI_COMM_WORLD);
-		MPI_Gather(&maiorMediaRegiao, 1, MPI_DOUBLE, maioresMediasRegiao, 1, MPI_DOUBLE, 0, MPI_COMM_WORLD);
-	}
-
-	for (i = 0; i < R; i++)
-	{
-		for(j = 0; j < C; j++)
-		{
-			k = i*C+j;
-			fprintf(arq, "Reg %d - Cid %d: menor: %d, maior: %d, mediana: %.2f, media: %.2f e DP: %.2f\n", i, j, menor_cidades[k], maior_cidades[k], dados_cidades[k*3 + MEDIANA], dados_cidades[k*3 + MEDIA], dados_cidades[k*3 + DESVIO_PADRAO]);
-		}
-		fprintf(arq, "\n");
-	}
-
-	// Métricas das regiões
-	for (i = 0; i < R; i++)
-	{
-		fprintf(arq, "Reg %d: menor: %d, maior: %d, mediana: %.2f, media: %.2f e DP: %.2f\n", i, menor_regiao[i], maior_regiao[i], dados_regiao[i*3 + MEDIANA], dados_regiao[i*3 + MEDIA], dados_regiao[i*3 + DESVIO_PADRAO]);
-	}
-
-	fprintf(arq, "\n");
-
-	if(myrank == 0) {
+		// Termina contagem do tempo
+		tempoExec = MPI_Wtime() - tempoExec;
         
 		for (i = 0; i < allR; i++)
 		{
 			for(j = 0; j < C; j++)
 			{
 				k = i*C+j;
-				fprintf(arq, "Reg %d - Cid %d: menor: %d, maior: %d, mediana: %.2f, media: %.2f e DP: %.2f\n", i, j, menor_cidades[k], maior_cidades[k], dados_cidades[k*3 + MEDIANA], dados_cidades[k*3 + MEDIA], dados_cidades[k*3 + DESVIO_PADRAO]);
+				printf("Reg %d - Cid %d: menor: %d, maior: %d, mediana: %.2f, media: %.2f e DP: %.2f\n", i, j, menor_cidades[k], maior_cidades[k], dados_cidades[k*3 + MEDIANA], dados_cidades[k*3 + MEDIA], dados_cidades[k*3 + DESVIO_PADRAO]);
 			}
-			fprintf(arq, "\n");
+			printf("\n");
 		}
 
 		// Métricas das regiões
 		for (i = 0; i < allR; i++)
 		{
-			fprintf(arq, "Reg %d: menor: %d, maior: %d, mediana: %.2f, media: %.2f e DP: %.2f\n", i, menor_regiao[i], maior_regiao[i], dados_regiao[i*3 + MEDIANA], dados_regiao[i*3 + MEDIA], dados_regiao[i*3 + DESVIO_PADRAO]);
+			printf("Reg %d: menor: %d, maior: %d, mediana: %.2f, media: %.2f e DP: %.2f\n", i, menor_regiao[i], maior_regiao[i], dados_regiao[i*3 + MEDIANA], dados_regiao[i*3 + MEDIA], dados_regiao[i*3 + DESVIO_PADRAO]);
 		}
 
-		fprintf(arq, "\n");
+		printf("\n");
 
 		//Métricas do país
-		fprintf(arq, "Brasil: menor: %d, maior: %d, mediana: %.2f, media: %.2f e DP: %.2f\n", menor_brasil, maior_brasil, dados_brasil[MEDIANA], dados_brasil[MEDIA], dados_brasil[DESVIO_PADRAO]);
+		printf("Brasil: menor: %d, maior: %d, mediana: %.2f, media: %.2f e DP: %.2f\n", menor_brasil, maior_brasil, dados_brasil[MEDIANA], dados_brasil[MEDIA], dados_brasil[DESVIO_PADRAO]);
 
-		fprintf(arq, "\n");
+		printf("\n");
 
-		fprintf(arq, "Melhor regiao: Regiao %d\n", melhor_regiao);
-		fprintf(arq, "Melhor cidade: Regiao %d, Cidade %d\n", melhor_cidade[REGIAO], melhor_cidade[CIDADE]);
+		printf("Melhor regiao: Regiao %d\n", melhor_regiao);
+		printf("Melhor cidade: Regiao %d, Cidade %d\n", melhor_cidade[REGIAO], melhor_cidade[CIDADE]);
+
+		printf("\nTempo de resposta sem considerar E/S, em segundos: %.3lfs\n", tempoExec);
 	}	
 
 	free(dados_cidades);
