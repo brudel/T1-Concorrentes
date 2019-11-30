@@ -117,7 +117,7 @@ int main(int argc, char **argv)
 	int allR;
 
 	// Variáveis de execução
-	int R, C, A;
+	int R, C, A, sizes[3];
 	int *matrizNotas;
 	estogram *cidades, *regioes, *Brasil;
     estogram auxBrasil;
@@ -143,10 +143,8 @@ int main(int argc, char **argv)
 
 	arq = fopen(name, "w+");
 
-	printf("meu rank = %d\n", myrank);
-
 	if(myrank == 0) {
-		int seed, sizes[npes][3]/*# Tirar redundância #*/, resto, regAtual;
+		int seed, resto, regAtual;
 
 		scanf(" %d %d %d %d", &allR, &C, &A, &seed);
 		srand(seed);
@@ -179,34 +177,40 @@ int main(int argc, char **argv)
 		maior_regiao = malloc(allR * sizeof(int));
 		menor_regiao = malloc(allR * sizeof(int));
 
+		// Distribui trabalho
 		nRegProc = allR/npes;
 		resto = allR%npes;
 		R = nRegProc + (resto > 0 ? 1 : 0);
 		MPI_Request request[npes];
 
+		sizes[0] = allR;
+		sizes[1] = C;
+		sizes[2] = A;
+		MPI_Bcast(sizes, 3, MPI_INT, 0, MPI_COMM_WORLD);
+
 		regAtual = R;
-
-		// Distribui trabalho
+		int nRegs;
 		for(i=1; i<npes; i++){
-			sizes[i][1] = C;
-			sizes[i][2] = A;
 			if(i < resto){
-				sizes[i][0] = nRegProc+1; 
+				nRegs = nRegProc+1; 
 			} else {
-				sizes[i][0] = nRegProc;
-			}
-			
-			MPI_Isend(sizes[i], 3, MPI_INT, i, 0, MPI_COMM_WORLD, &request[i]); //# Pode ser transformado em broadcast e cálculo local
-			MPI_Isend(&matrizNotas[regAtual*C*A], sizes[i][0]*C*A, MPI_INT, i, 1, MPI_COMM_WORLD, &request[i]); //# Tenho quase certeza que pode ser feito com scatter
+				nRegs = nRegProc;
+			}			
 
-			regAtual += sizes[i][0];
+			MPI_Isend(&matrizNotas[regAtual*C*A], nRegs*C*A, MPI_INT, i, 1, MPI_COMM_WORLD, &request[i]); 
+
+			regAtual += nRegs;
 		}
 
 	} else {
-		int sizes[3];
-		MPI_Recv(sizes, 3, MPI_INT, 0, 0, MPI_COMM_WORLD, NULL);
+		//int sizes[3];
+		//MPI_Recv(sizes, 3, MPI_INT, 0, 0, MPI_COMM_WORLD, NULL);
+		MPI_Bcast(sizes, 3, MPI_INT, 0, MPI_COMM_WORLD);
 
-		R = sizes[0], C = sizes[1], A = sizes[2];
+		int resto = sizes[0]%npes;
+
+		R = sizes[0]/npes + (myrank < resto ? 1 : 0), C = sizes[1], A = sizes[2];
+
 		matrizNotas = malloc(R*C*A*sizeof(int));
 
 		// Metricas (media, dp e mediana)
