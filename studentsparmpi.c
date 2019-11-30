@@ -1,5 +1,5 @@
-// COMO COMPILAR: gcc studentsseq.c -o seq -lm -fopenmp
-// COMO EXECUTAR: ./seq < input.in
+// COMO COMPILAR: mpicc studentspar.c -o par -lm
+// COMO EXECUTAR: mpirun -np 4 par < input.in --hostfile
 
 // INTEGRANTES:
 // Marcelo Kiochi Hatanaka (10295645)
@@ -18,13 +18,9 @@
 enum {MEDIA, DESVIO_PADRAO, MEDIANA};
 enum {CIDADE, REGIAO};
 
-typedef int estogram[MAX_VAL];
+typedef int histogram[MAX_VAL];
 
-typedef double data[3]; //# Implementar
-
-#define oi printf("oi\n"); fflush(stdout);
-
-void calcula_metricas(estogram cid, estogram reg, double* d, int n) {
+void calcula_metricas(histogram cid, histogram reg, double* d, int n) {
 	long int sum = 0, i, sumquad = 0, num = 0;
 
 	// Percorre histograma somando número de ocorrências de cada nota
@@ -57,7 +53,7 @@ void calcula_metricas(estogram cid, estogram reg, double* d, int n) {
 	d[DESVIO_PADRAO] = sqrt((sumquad  -  (double) sum * sum / n)	/	(n - 1));
 }
 
-void calcula_metricas_pais(estogram est, double* d, int n) {
+void calcula_metricas_pais(histogram est, double* d, int n) {
 	long int sum = 0, i, sumquad = 0, num = 0;
 
 	// Percorre histograma somando número de ocorrências de cada nota
@@ -88,7 +84,7 @@ void calcula_metricas_pais(estogram est, double* d, int n) {
 }
 
 // Encontra nota máxima
-int emax(estogram est) {
+int emax(histogram est) {
 	int i;
 
 	for(i = MAX_VAL - 1; est[i] == 0; --i);
@@ -97,7 +93,7 @@ int emax(estogram est) {
 }
 
 // Encontra nota mínima
-int emin(estogram est) {
+int emin(histogram est) {
 	int i;
 
 	for(i = 0; est[i] == 0; ++i);
@@ -119,8 +115,8 @@ int main(int argc, char **argv)
 	// Variáveis de execução
 	int R, C, A, sizes[3];
 	int *matrizNotas;
-	estogram *cidades, *regioes, *Brasil;
-    estogram auxBrasil;
+	histogram *cidades, *regioes, *Brasil;
+    histogram auxBrasil;
 
 	// Resultados
 	double *dados_cidades, *dados_regiao, *dados_brasil;
@@ -137,12 +133,6 @@ int main(int argc, char **argv)
 	int i, j, k;
 	double tempoExec;
 
-	FILE *arq;
-	char name[9] = "arq0.txt";
-	name[3] += myrank;
-
-	arq = fopen(name, "w+");
-
 	if(myrank == 0) {
 		int seed, resto, regAtual;
 
@@ -156,11 +146,8 @@ int main(int argc, char **argv)
 			for(j=0; j<C; j++){
 				for(k=0; k<A; k++){
 					matrizNotas[i*C*A + j*A + k] = rand()%MAX_VAL;
-					fprintf(arq, "%d ", matrizNotas[i*C*A + j*A + k]);
 				}
-				fprintf(arq, "\n");
 			}
-			fprintf(arq, "\n");
 		}
 
 		// Inicia contagem do tempo
@@ -181,7 +168,6 @@ int main(int argc, char **argv)
 		nRegProc = allR/npes;
 		resto = allR%npes;
 		R = nRegProc + (resto > 0 ? 1 : 0);
-		MPI_Request request[npes];
 
 		sizes[0] = allR;
 		sizes[1] = C;
@@ -190,26 +176,30 @@ int main(int argc, char **argv)
 
 		regAtual = R;
 		int nRegs;
+		MPI_Request request[npes];
 		for(i=1; i<npes; i++){
+			// Acerta divisão não exata de regiões por processo
 			if(i < resto){
 				nRegs = nRegProc+1; 
 			} else {
 				nRegs = nRegProc;
 			}			
 
+			// Envia vetor de notas pra cada processo
 			MPI_Isend(&matrizNotas[regAtual*C*A], nRegs*C*A, MPI_INT, i, 1, MPI_COMM_WORLD, &request[i]); 
 
 			regAtual += nRegs;
 		}
 
 	} else {
-		//int sizes[3];
-		//MPI_Recv(sizes, 3, MPI_INT, 0, 0, MPI_COMM_WORLD, NULL);
+
 		MPI_Bcast(sizes, 3, MPI_INT, 0, MPI_COMM_WORLD);
 
 		int resto = sizes[0]%npes;
 
-		R = sizes[0]/npes + (myrank < resto ? 1 : 0), C = sizes[1], A = sizes[2];
+		R = sizes[0]/npes + (myrank < resto ? 1 : 0);
+		C = sizes[1];
+		A = sizes[2];
 
 		matrizNotas = malloc(R*C*A*sizeof(int));
 
@@ -225,18 +215,13 @@ int main(int argc, char **argv)
 		menor_regiao = malloc(R * sizeof(int));
 
 		MPI_Recv(matrizNotas, R*C*A, MPI_INT, 0, 1, MPI_COMM_WORLD, NULL);
-
-		fprintf(arq, "Rank = %d\n", myrank);
-		for(i=0; i<R; i++)
-			for(j=0; j<C; j++)
-				for(k=0; k<A; k++)
-					fprintf(arq, "%d ", matrizNotas[i*C*A + j*A + k]);
 	}
 
-	cidades = calloc(1, R * C * sizeof(estogram)),
-	regioes = calloc(1, R * sizeof(estogram)),
-	Brasil = calloc(1, sizeof(estogram));
+	cidades = calloc(1, R * C * sizeof(histogram)),
+	regioes = calloc(1, R * sizeof(histogram)),
+	Brasil = calloc(1, sizeof(histogram));
 
+	// Controi histograma das cidades
 	for(i=0; i<R*C; i++){
 		for(j=0; j<A; j++){
 			cidades[i][matrizNotas[i*A + j]]++;
@@ -281,6 +266,7 @@ int main(int argc, char **argv)
 		int resto = allR%npes;
 		MPI_Request requests[npes][6];
 		
+		// Recebe dados das cidades e regioes dos outros processos
 		for(i=1; i<npes; i++){
 			if(i < resto){
 				nRegs = nRegProc+1; 
@@ -307,6 +293,7 @@ int main(int argc, char **argv)
 		}
 
 	} else {
+		// Envia dados das regioes e cidades pro processo 0
 		int auxBrasil[MAX_VAL];
 
 		MPI_Request requests[6];
@@ -319,35 +306,21 @@ int main(int argc, char **argv)
 		MPI_Isend(maior_regiao, R, MPI_INT, 0, 5, MPI_COMM_WORLD, &requests[5]);
 	}
 
+	// Gera histograma do Brasil no processo 0
     MPI_Reduce(*Brasil, auxBrasil, MAX_VAL, MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD);
 
+	// Recebe indice e media das melhores cidades/regioes de cada processo para fazer a redução
     MPI_Gather(melhor_cidade, 2, MPI_INT, melhores_cidades, 2, MPI_INT, 0, MPI_COMM_WORLD);
     MPI_Gather(&melhor_regiao, 1, MPI_INT, melhores_regioes, 1, MPI_INT, 0, MPI_COMM_WORLD);
     MPI_Gather(&maiorMediaCidade, 1, MPI_DOUBLE, maioresMediasCidade, 1, MPI_DOUBLE, 0, MPI_COMM_WORLD);
     MPI_Gather(&maiorMediaRegiao, 1, MPI_DOUBLE, maioresMediasRegiao, 1, MPI_DOUBLE, 0, MPI_COMM_WORLD);
 
-	for (i = 0; i < R; i++)
-	{
-		for(j = 0; j < C; j++)
-		{
-			k = i*C+j;
-			fprintf(arq, "Reg %d - Cid %d: menor: %d, maior: %d, mediana: %.2f, media: %.2f e DP: %.2f\n", i, j, menor_cidades[k], maior_cidades[k], dados_cidades[k*3 + MEDIANA], dados_cidades[k*3 + MEDIA], dados_cidades[k*3 + DESVIO_PADRAO]);
-		}
-		fprintf(arq, "\n");
-	}
-
-	// Métricas das regiões
-	for (i = 0; i < R; i++)
-	{
-		fprintf(arq, "Reg %d: menor: %d, maior: %d, mediana: %.2f, media: %.2f e DP: %.2f\n", i, menor_regiao[i], maior_regiao[i], dados_regiao[i*3 + MEDIANA], dados_regiao[i*3 + MEDIA], dados_regiao[i*3 + DESVIO_PADRAO]);
-	}
-
-	fprintf(arq, "\n");
-
 	if(myrank == 0) {
         int nRegs;
 		int regAtual = R;
 		int resto = allR%npes;
+		
+		// Atualiza histograma do Brasil no processo 0
         for(int i=0; i<MAX_VAL; i++){
             (*Brasil)[i] = auxBrasil[i];
         }
@@ -358,6 +331,7 @@ int main(int argc, char **argv)
 		maior_brasil = emax(*Brasil);
 		menor_brasil = emin(*Brasil);
 
+		// Redução da melhores cidade/região
         regAtual = 0;
         for(int i=0; i<npes; i++){
             
@@ -377,7 +351,8 @@ int main(int argc, char **argv)
 
 		// Termina contagem do tempo
 		tempoExec = MPI_Wtime() - tempoExec;
-        
+
+		// Imprime resultados
 		for (i = 0; i < allR; i++)
 		{
 			for(j = 0; j < C; j++)
@@ -418,7 +393,6 @@ int main(int argc, char **argv)
 	free(regioes);
 	free(Brasil);
 	free(matrizNotas);
-	fclose(arq);
 	MPI_Finalize();
 
 	return(0);
