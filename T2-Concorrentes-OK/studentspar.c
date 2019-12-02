@@ -133,10 +133,21 @@ int main(int argc, char **argv)
 	int i, j, k;
 	double tempoExec;
 
-	if(myrank == 0) {
-		int seed, resto, regAtual;
+	if(argc < 6){
+		if(myrank == 0)
+			printf("Usage: {R} {C} {A} {seed}\n");
+		MPI_Finalize();
+		return 0;
+	}
 
-		scanf(" %d %d %d %d", &allR, &C, &A, &seed);
+	if(myrank == 0) {
+		int seed = 1, resto, regAtual;
+
+		allR = atoi(argv[1]);
+		C = atoi(argv[2]);
+		A = atoi(argv[3]);
+		seed = atoi(argv[4]);
+
 		srand(seed);
 
 		matrizNotas = malloc(allR * C * A * sizeof(int));
