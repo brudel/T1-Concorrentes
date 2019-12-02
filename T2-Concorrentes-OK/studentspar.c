@@ -1,5 +1,5 @@
 // COMO COMPILAR: mpicc studentspar.c -o par -lm
-// COMO EXECUTAR: mpirun -np 4 par < input.in --hostfile
+// COMO EXECUTAR: mpirun -np {num_proc} par {R} {C} {A} {seed} --hostfile
 
 // INTEGRANTES:
 // Marcelo Kiochi Hatanaka (10295645)
@@ -141,7 +141,7 @@ int main(int argc, char **argv)
 	}
 
 	if(myrank == 0) {
-		int seed = 1, resto, regAtual;
+		int seed, resto, regAtual;
 
 		allR = atoi(argv[1]);
 		C = atoi(argv[2]);
